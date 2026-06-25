@@ -116,7 +116,7 @@
           <div>
             <h4 class="font-semibold text-slate-200 mb-1">Como funciona a geração?</h4>
             <p class="leading-relaxed">
-              O sistema utiliza o modelo estável <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> com definições de schema para criar os dados técnicos. Logo após, a imagem é renderizada nativamente pelo modelo <strong class="text-purple-400">gemini-2.5-flash-image</strong>.
+              O sistema utiliza o modelo <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> com definições estritas de schema para criar os dados técnicos. Logo após, a imagem é renderizada pelo modelo público <strong class="text-purple-400">imagen-3.0-generate-001</strong>.
             </p>
           </div>
         </div>
@@ -323,7 +323,7 @@
 
   <!-- FOOTER -->
   <footer class="border-t border-slate-800 bg-slate-950/60 py-6 px-6 text-center text-xs text-slate-500 space-y-2 mt-auto print:hidden">
-    <p>Desenvolvido com Vanilla JS, Tailwind CSS, Gemini 2.5 Flash & Gemini 2.5 Flash Image</p>
+    <p>Desenvolvido com Vanilla JS, Tailwind CSS, Gemini 2.5 Flash & Imagen 3.0</p>
     <p class="text-[10px] text-slate-600">As chaves de API são providas pelo ambiente do canvas ou salvas localmente.</p>
   </footer>
 
@@ -1200,8 +1200,14 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       renderCharacterSheet();
 
       const activeKey = getActiveApiKey();
-      // O modelo gemini-2.5-flash-image substitui modelos descontinuados, rodando via generateContent com resposta de imagem base64
-      const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${activeKey}`;
+    // GERAR AVATAR VIA IMAGEN 4
+    async function generateAvatar(charData) {
+      state.loadingImage = true;
+      renderCharacterSheet();
+
+      const activeKey = getActiveApiKey();
+      // Correção vital 1: Utilizar o endpoint Imagen 3.0 que é público e estável na API do Google
+      const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${activeKey}`;
 
       const artStyleInstructions = {
         'concept-art': 'conceptual digital painting, character concept sheet, highly detailed, dramatic shadows, cinematic lighting, sharp focus',
@@ -1214,19 +1220,12 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
 
       const finalImagePrompt = `${charData.imagePrompt}, close-up character portrait, centered composition, styled as ${artStyleInstructions[charData.artStyle] || 'digital art'}, masterpiece, 4k resolution`;
 
+      // Correção vital 2: O payload do Imagen na v1beta DEVE ter 'instances' como uma matriz (array)
       const imagePayload = {
-        contents: [
-          {
-            parts: [
-              {
-                text: finalImagePrompt
-              }
-            ]
-          }
+        instances: [
+          { prompt: finalImagePrompt }
         ],
-        generationConfig: {
-          responseModalities: ["IMAGE"]
-        }
+        parameters: { sampleCount: 1 }
       };
 
       try {
@@ -1236,10 +1235,8 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
           body: JSON.stringify(imagePayload)
         });
 
-        // Encontra a parte que contém inlineData retornada pelo gemini-2.5-flash-image
-        const inlineDataPart = imageResult.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
-        const base64Bytes = inlineDataPart?.inlineData?.data;
-        if (!base64Bytes) throw new Error("A API de imagem não retornou dados.");
+        const base64Bytes = imageResult.predictions?.[0]?.bytesBase64Encoded;
+        if (!base64Bytes) throw new Error("A API não retornou os bytes da imagem.");
 
         const generatedImageUrl = `data:image/png;base64,${base64Bytes}`;
         const updatedCharacter = { ...charData, imageUrl: generatedImageUrl };
@@ -1251,7 +1248,10 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
         const fallbackImage = `https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=60`;
         const updatedCharacter = { ...charData, imageUrl: fallbackImage, imageGenerationFailed: true };
         await saveAndSyncCharacter(updatedCharacter);
-        showError("A lore foi criada, mas houve um erro ao gerar o avatar. Usando imagem alternativa.");
+        
+        // Melhoria vital 3: Exibir o erro real que retornou do Google para não sofrermos mais no escuro
+        let detail = err.message ? err.message : "Resposta inesperada do servidor";
+        showError(`A lore foi criada, mas ocorreu um erro ao gerar o avatar (Usando alternativa). Detalhes: ${detail}`);
       } finally {
         state.loadingImage = false;
         renderCharacterSheet();
