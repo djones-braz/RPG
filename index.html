@@ -26,7 +26,6 @@
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- Custom Core Styling overrides -->
   <style>
     body {
       background-color: #020617; /* slate-950 */
@@ -58,7 +57,6 @@
     <span id="toast-text" class="font-medium text-sm"></span>
   </div>
 
-  <!-- HEADER -->
   <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40 px-6 py-4 flex items-center justify-between print:hidden">
     <div class="flex items-center gap-3">
       <div class="bg-gradient-to-tr from-purple-600 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-purple-900/30 flex items-center justify-center">
@@ -84,7 +82,6 @@
     </div>
   </header>
 
-  <!-- MODAL DE CONFIGURAÇÕES DE API -->
   <div id="modal-config" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 print:hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
       <div class="px-6 py-5 border-b border-slate-800 bg-slate-950/40 flex items-center justify-between">
@@ -119,7 +116,7 @@
           <div>
             <h4 class="font-semibold text-slate-200 mb-1">Como funciona a geração?</h4>
             <p class="leading-relaxed">
-              O sistema utiliza o modelo <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> com definições estritas de schema para criar os dados técnicos. Logo após, a imagem é renderizada pelo modelo <strong class="text-purple-400">imagen-4.0-generate-001</strong>.
+              O sistema utiliza o modelo estável <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> com definições de schema para criar os dados técnicos. Logo após, a imagem é renderizada nativamente pelo modelo <strong class="text-purple-400">gemini-2.5-flash-image</strong>.
             </p>
           </div>
         </div>
@@ -139,7 +136,6 @@
   <!-- LAYOUT PRINCIPAL -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start print:block print:p-0">
     
-    <!-- COLUNA ESQUERDA: ENTRADA E CONTROLES -->
     <section class="lg:col-span-5 space-y-6 print:hidden">
       
       <!-- Caixa de Entrada Criativa -->
@@ -193,7 +189,6 @@
         </div>
       </div>
 
-      <!-- Formulário de Recuperação de Ficha por Código -->
       <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 shadow-xl space-y-3.5 backdrop-blur-sm relative overflow-hidden">
         <div class="flex items-center gap-2">
           <i data-lucide="shield" class="h-4.5 w-4.5 text-purple-400"></i>
@@ -237,7 +232,6 @@
         </div>
       </div>
 
-      <!-- MESA DE DADOS & CALCULADORA DE RPG -->
       <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 md:p-6 shadow-xl space-y-4 backdrop-blur-sm">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
@@ -320,11 +314,7 @@
 
       <!-- Container Dinâmico da Ficha (Sheet Container) -->
       <div id="sheet-container">
-        <!-- Renderizado dinamicamente via JavaScript:
-             - Estado vazio (Sem personagem)
-             - Estado carregando (Pulsing Skeleton)
-             - Estado Ficha Ativa (Ficha técnica completa)
-        -->
+        <!-- Renderizado dinamicamente via JavaScript -->
       </div>
 
     </section>
@@ -333,11 +323,10 @@
 
   <!-- FOOTER -->
   <footer class="border-t border-slate-800 bg-slate-950/60 py-6 px-6 text-center text-xs text-slate-500 space-y-2 mt-auto print:hidden">
-    <p>Desenvolvido com Vanilla JS, Tailwind CSS, Gemini 2.5 Flash & Imagen 4.0</p>
+    <p>Desenvolvido com Vanilla JS, Tailwind CSS, Gemini 2.5 Flash & Gemini 2.5 Flash Image</p>
     <p class="text-[10px] text-slate-600">As chaves de API são providas pelo ambiente do canvas ou salvas localmente.</p>
   </footer>
 
-  <!-- Firebase Scripts e Módulos -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -597,10 +586,7 @@
 
     // Detecção dinâmica de modelo para mitigar erros 404 de API em ambientes externos
     const getActiveModel = () => {
-      if (state.customApiKey && state.customApiKey.trim() !== '') {
-        return 'gemini-2.5-flash';
-      }
-      return 'gemini-2.5-flash-preview-09-2025';
+      return 'gemini-2.5-flash';
     };
 
     const fetchWithRetry = async (url, options, maxRetries = 5) => {
@@ -1087,7 +1073,6 @@
       lucide.createIcons();
     }
 
-    // GERAR PERSONAGEM COMPLETO VIA IA (GEMINI + IMAGEN)
     async function generateCharacter() {
       if (!state.userPrompt.trim()) {
         showError("Por favor, digite algumas palavras-chave para criar o seu personagem.");
@@ -1210,13 +1195,13 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       }
     }
 
-    // GERAR AVATAR VIA IMAGEN 4
     async function generateAvatar(charData) {
       state.loadingImage = true;
       renderCharacterSheet();
 
       const activeKey = getActiveApiKey();
-      const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${activeKey}`;
+      // O modelo gemini-2.5-flash-image substitui modelos descontinuados, rodando via generateContent com resposta de imagem base64
+      const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${activeKey}`;
 
       const artStyleInstructions = {
         'concept-art': 'conceptual digital painting, character concept sheet, highly detailed, dramatic shadows, cinematic lighting, sharp focus',
@@ -1230,8 +1215,18 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       const finalImagePrompt = `${charData.imagePrompt}, close-up character portrait, centered composition, styled as ${artStyleInstructions[charData.artStyle] || 'digital art'}, masterpiece, 4k resolution`;
 
       const imagePayload = {
-        instances: { prompt: finalImagePrompt },
-        parameters: { sampleCount: 1 }
+        contents: [
+          {
+            parts: [
+              {
+                text: finalImagePrompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseModalities: ["IMAGE"]
+        }
       };
 
       try {
@@ -1241,7 +1236,9 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
           body: JSON.stringify(imagePayload)
         });
 
-        const base64Bytes = imageResult.predictions?.[0]?.bytesBase64Encoded;
+        // Encontra a parte que contém inlineData retornada pelo gemini-2.5-flash-image
+        const inlineDataPart = imageResult.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
+        const base64Bytes = inlineDataPart?.inlineData?.data;
         if (!base64Bytes) throw new Error("A API de imagem não retornou dados.");
 
         const generatedImageUrl = `data:image/png;base64,${base64Bytes}`;
@@ -1270,8 +1267,7 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       renderCharacterSheet();
 
       const activeKey = getActiveApiKey();
-      const activeModel = getActiveModel();
-      const textModelUrl = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${activeKey}`;
+      const textModelUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
 
       const systemPrompt = `Você é um mestre de RPG veterano e escritor criativo. 
 Sua única tarefa é reescrever a história de fundo (lore) de um personagem de forma épiquíssima e envolvente (com exatamente 2 parágrafos).
@@ -1320,15 +1316,11 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
       }
     }
 
-    // MODIFICADORES DE ATRIBUTOS E STATUS
     function updateHp(amount) {
       if (!state.character) return;
       state.character.hpCurrent = Math.max(0, Math.min(state.character.hpMax, state.character.hpCurrent + amount));
       saveAndSyncCharacter(state.character);
     }
-
-    // Declarando variáveis auxiliares no escopo correspondente
-    let initAuth, unsubscribe;
 
     function updateMp(amount) {
       if (!state.character) return;
@@ -1377,7 +1369,6 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
       saveAndSyncCharacter(state.character);
     }
 
-    // RENDERIZADOR DA FICHA COMPLETA (COLUNA DIREITA)
     function renderCharacterSheet() {
       const container = document.getElementById('sheet-container');
 
@@ -2638,7 +2629,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
       }
     }
 
-    // CÓPIA DEÁREA DE TRANSFERÊNCIA DE BACKUP COMPATÍVEL COM IFRUAME
+    // CÓPIA DE ÁREA DE TRANSFERÊNCIA DE BACKUP COMPATÍVEL COM IFRAME
     function copyTextFallback(textToCopy) {
       const el = document.createElement('textarea');
       el.value = textToCopy;
@@ -2656,7 +2647,6 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
       document.body.removeChild(el);
     }
 
-    // EXPORTADOR INTEGRADO EM FORMATO OFICIAL DE FOLHA A4 PARA PDF
     async function downloadPdf() {
       if (!state.character) return;
       
