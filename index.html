@@ -116,7 +116,7 @@
           <div>
             <h4 class="font-semibold text-slate-200 mb-1">Como funciona a geração?</h4>
             <p class="leading-relaxed">
-              O sistema utiliza de forma dinâmica os modelos <strong class="text-purple-400" id="active-model-display">Gemini Flash</strong> para o esquema de dados técnicos, e a renderização em imagem usa automaticamente <strong class="text-purple-400">Imagen 3.0 ou 4.0</strong> dependendo do seu ambiente.
+              O sistema utiliza o modelo estável <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> com definições de schema para criar os dados técnicos. Logo após, a imagem é renderizada nativamente pelo modelo <strong class="text-purple-400">gemini-2.5-flash-image</strong>.
             </p>
           </div>
         </div>
@@ -308,7 +308,7 @@
         <span class="bg-red-500/20 p-1 rounded-md text-red-400 font-bold">Aviso</span>
         <div class="flex-1">
           <p class="font-semibold text-red-200">Ops! Algo deu errado:</p>
-          <p id="error-alert-text" class="mt-0.5 leading-relaxed font-mono whitespace-pre-wrap"></p>
+          <p id="error-alert-text" class="mt-0.5 leading-relaxed"></p>
         </div>
       </div>
 
@@ -323,7 +323,7 @@
 
   <!-- FOOTER -->
   <footer class="border-t border-slate-800 bg-slate-950/60 py-6 px-6 text-center text-xs text-slate-500 space-y-2 mt-auto print:hidden">
-    <p>Desenvolvido com Vanilla JS, Tailwind CSS, Gemini Flash & Imagen 3.0/4.0</p>
+    <p>Desenvolvido com Vanilla JS, Tailwind CSS, Gemini 2.5 Flash & Gemini 2.5 Flash Image</p>
     <p class="text-[10px] text-slate-600">As chaves de API são providas pelo ambiente do canvas ou salvas localmente.</p>
   </footer>
 
@@ -586,11 +586,7 @@
 
     // Detecção dinâmica de modelo para mitigar erros 404 de API em ambientes externos
     const getActiveModel = () => {
-      // Usa um modelo estável quando há chave externa para não falhar publicamente
-      if (state.customApiKey && state.customApiKey.trim() !== '') {
-        return 'gemini-1.5-flash';
-      }
-      return 'gemini-2.5-flash-preview-09-2025';
+      return 'gemini-2.5-flash';
     };
 
     const fetchWithRetry = async (url, options, maxRetries = 5) => {
@@ -605,7 +601,7 @@
             delay *= 2;
           } else {
             const errText = await res.text();
-            throw new Error(`API (${res.status}): ${errText}`);
+            throw new Error(`Erro na API (${res.status}): ${errText}`);
           }
         } catch (err) {
           if (i === maxRetries - 1) throw err;
@@ -1204,11 +1200,8 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       renderCharacterSheet();
 
       const activeKey = getActiveApiKey();
-      const isCustomKey = state.customApiKey && state.customApiKey.trim() !== '';
-      
-      // Diferencia dinamicamente o modelo público (Imagen 3.0) do modelo de preview interno (Imagen 4.0)
-      const imageModel = isCustomKey ? 'imagen-3.0-generate-001' : 'imagen-4.0-generate-001';
-      const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/${imageModel}:predict?key=${activeKey}`;
+      // O modelo gemini-2.5-flash-image substitui modelos descontinuados, rodando via generateContent com resposta de imagem base64
+      const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${activeKey}`;
 
       const artStyleInstructions = {
         'concept-art': 'conceptual digital painting, character concept sheet, highly detailed, dramatic shadows, cinematic lighting, sharp focus',
@@ -1221,16 +1214,20 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
 
       const finalImagePrompt = `${charData.imagePrompt}, close-up character portrait, centered composition, styled as ${artStyleInstructions[charData.artStyle] || 'digital art'}, masterpiece, 4k resolution`;
 
-      // A API pública restringe instances como lista [], enquanto o preview pode demandar objeto puro. Tratamento condicional para evitar erro HTTP 400.
-      const imagePayload = isCustomKey
-        ? {
-            instances: [{ prompt: finalImagePrompt }],
-            parameters: { sampleCount: 1 }
+      const imagePayload = {
+        contents: [
+          {
+            parts: [
+              {
+                text: finalImagePrompt
+              }
+            ]
           }
-        : {
-            instances: { prompt: finalImagePrompt },
-            parameters: { sampleCount: 1 }
-          };
+        ],
+        generationConfig: {
+          responseModalities: ["IMAGE"]
+        }
+      };
 
       try {
         const imageResult = await fetchWithRetry(imageUrl, {
@@ -1239,15 +1236,13 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
           body: JSON.stringify(imagePayload)
         });
 
-        if (imageResult.error) {
-           throw new Error(imageResult.error.message || "Erro desconhecido na resposta JSON do Google.");
-        }
-
-        const base64Bytes = imageResult.predictions?.[0]?.bytesBase64Encoded;
-        if (!base64Bytes) throw new Error("A API de imagem retornou uma estrutura de predição vazia.");
+        // Encontra a parte que contém inlineData retornada pelo gemini-2.5-flash-image
+        const inlineDataPart = imageResult.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
+        const base64Bytes = inlineDataPart?.inlineData?.data;
+        if (!base64Bytes) throw new Error("A API de imagem não retornou dados.");
 
         const generatedImageUrl = `data:image/png;base64,${base64Bytes}`;
-        const updatedCharacter = { ...charData, imageUrl: generatedImageUrl, imageGenerationFailed: false };
+        const updatedCharacter = { ...charData, imageUrl: generatedImageUrl };
         await saveAndSyncCharacter(updatedCharacter);
 
         showToast("Arte do personagem materializada com sucesso!");
@@ -1256,12 +1251,7 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
         const fallbackImage = `https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=60`;
         const updatedCharacter = { ...charData, imageUrl: fallbackImage, imageGenerationFailed: true };
         await saveAndSyncCharacter(updatedCharacter);
-        
-        let displayError = err.message;
-        if (displayError.includes('API (403)') || displayError.includes('API (404)')) {
-          displayError = "Sua chave de API não tem as permissões necessárias para o modelo de geração de imagem. Tente recriá-la ou usar o plano compatível.";
-        }
-        showError(`Problema na materialização do Avatar: ${displayError}`);
+        showError("A lore foi criada, mas houve um erro ao gerar o avatar. Usando imagem alternativa.");
       } finally {
         state.loadingImage = false;
         renderCharacterSheet();
@@ -1277,8 +1267,7 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       renderCharacterSheet();
 
       const activeKey = getActiveApiKey();
-      const activeModel = getActiveModel();
-      const textModelUrl = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${activeKey}`;
+      const textModelUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
 
       const systemPrompt = `Você é um mestre de RPG veterano e escritor criativo. 
 Sua única tarefa é reescrever a história de fundo (lore) de um personagem de forma épiquíssima e envolvente (com exatamente 2 parágrafos).
