@@ -116,7 +116,7 @@
           <div>
             <h4 class="font-semibold text-slate-200 mb-1">Como funciona a geração?</h4>
             <p class="leading-relaxed">
-              O sistema utiliza o modelo estável <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> com definições de schema para criar os dados técnicos. Logo após, a imagem é renderizada nativamente pelo modelo <strong class="text-purple-400">gemini-2.5-flash-image</strong>.
+              O sistema utiliza o modelo estável <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> com definições de schema para criar os dados técnicos. Logo após, a imagem é renderizada de forma autônoma e gratuita com base no prompt gerado.
             </p>
           </div>
         </div>
@@ -189,49 +189,7 @@
         </div>
       </div>
 
-      <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 shadow-xl space-y-3.5 backdrop-blur-sm relative overflow-hidden">
-        <div class="flex items-center gap-2">
-          <i data-lucide="shield" class="h-4.5 w-4.5 text-purple-400"></i>
-          <h3 class="font-bold text-sm text-white uppercase tracking-wider">Recuperar por Código</h3>
-        </div>
-        
-        <div class="flex gap-2">
-          <input 
-            type="text" 
-            id="recovery-code-input"
-            placeholder="Ex: RPG-A9X2"
-            class="w-full bg-slate-950 border border-slate-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 rounded-xl px-3 py-2.5 text-slate-200 text-xs font-mono uppercase focus:outline-none transition-all placeholder:text-slate-700"
-          />
-          <button
-            id="btn-recover"
-            class="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-purple-900/20 active:scale-95 transition-all flex items-center gap-1.5 shrink-0 uppercase tracking-wider"
-          >
-            <i data-lucide="check" class="h-4 w-4"></i>
-            <span>Recuperar</span>
-          </button>
-        </div>
-        <p class="text-[11px] text-slate-500 leading-normal text-left">
-          Insira o código de segurança para carregar as estatísticas e equipamentos da ficha exatamente como estavam salvos.
-        </p>
-      </div>
-
-      <!-- Histórico / Arquivo de Personagens -->
-      <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 md:p-6 shadow-xl space-y-4 backdrop-blur-sm">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <i data-lucide="book-open" class="h-4.5 w-4.5 text-indigo-400"></i>
-            <h3 class="font-bold text-sm text-white">Arquivo do Studio</h3>
-          </div>
-          <span id="history-counter" class="text-xs bg-slate-950 px-2 py-0.5 rounded-full text-slate-400 border border-slate-850 font-medium">
-            0 / 8 saved(s)
-          </span>
-        </div>
-
-        <div id="history-container">
-          <!-- Renderizado dinamicamente -->
-        </div>
-      </div>
-
+      <!-- MESA DE DADOS & CALCULADORA DE RPG -->
       <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 md:p-6 shadow-xl space-y-4 backdrop-blur-sm">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
@@ -323,8 +281,8 @@
 
   <!-- FOOTER -->
   <footer class="border-t border-slate-800 bg-slate-950/60 py-6 px-6 text-center text-xs text-slate-500 space-y-2 mt-auto print:hidden">
-    <p>Desenvolvido com Vanilla JS, Tailwind CSS, Gemini 2.5 Flash & Gemini 2.5 Flash Image</p>
-    <p class="text-[10px] text-slate-600">As chaves de API são providas pelo ambiente do canvas ou salvas localmente.</p>
+    <p>Desenvolvido com Vanilla JS, Tailwind CSS, Gemini 2.5 Flash & Pollinations AI</p>
+    <p class="text-[10px] text-slate-600">As chaves de API do Gemini são providas pelo ambiente do canvas ou salvas localmente.</p>
   </footer>
 
   <script type="module">
@@ -601,13 +559,6 @@
             delay *= 2;
           } else {
             const errText = await res.text();
-            let parsedErr;
-            try {
-              parsedErr = JSON.parse(errText);
-              if (parsedErr.error && parsedErr.error.message) {
-                 throw new Error(`Erro na API (${res.status}): ${parsedErr.error.message}`);
-              }
-            } catch(e) {}
             throw new Error(`Erro na API (${res.status}): ${errText}`);
           }
         } catch (err) {
@@ -911,7 +862,7 @@
       if (!formula) {
         state.diceFormula = val;
       } else if (['+', '-', '*', '/'].includes(formula.slice(-1))) {
-        state.diceFormula = `${formula} ${val}`;
+        state.formula = `${formula} ${val}`;
       } else {
         state.diceFormula = `${formula} + ${val}`;
       }
@@ -1202,107 +1153,47 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       }
     }
 
+    // ALTERNATIVA COMPLETAMENTE LIVRE DE CORS E DE CRÉDITOS: POLLINATIONS AI
     async function generateAvatar(charData) {
       state.loadingImage = true;
       renderCharacterSheet();
 
-      const activeKey = getActiveApiKey();
-      const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${activeKey}`;
-
       const artStyleInstructions = {
-        'concept-art': 'conceptual digital painting, character concept sheet, highly detailed, dramatic shadows, cinematic lighting, sharp focus',
-        'anime': 'modern anime style character portrait, beautiful lineart, vibrant flat shading, high resolution anime key art, studio trigger style',
-        'pixel-art': 'meticulously crafted 16-bit pixel art, detailed retro game sprite, isometric fantasy style, limited palette, highly textured',
+        'concept-art': 'highly detailed conceptual digital painting, character concept sheet, dramatic shadows, cinematic lighting, sharp focus, artstation masterpiece',
+        'anime': 'modern anime style character portrait, beautiful clean lineart, vibrant flat shading, high resolution anime key art, studio trigger style',
+        'pixel-art': 'meticulously crafted 16-bit pixel art, detailed retro game sprite, fantasy style, limited palette, highly textured, perfect pixel styling',
         'realistic': 'photorealistic character portrait, shot on 85mm lens, f/1.4, volumetric lighting, rich fabric textures, hyper-detailed skin, cinematic color grading',
         'cyberpunk-neon': 'cyberpunk dystopian portrait, heavy neon illumination, reflections of pink and cyan lights, high tech elements, futuristic key-art',
-        'fantasy-oil': 'gorgeous oil painting, textured canvas, heavy brush strokes, classical renaissance fantasy portrait, warm lighting'
+        'fantasy-oil': 'gorgeous detailed oil painting, textured canvas, heavy brush strokes, classical renaissance fantasy portrait, warm lighting'
       };
 
       const finalImagePrompt = `${charData.imagePrompt}, close-up character portrait, centered composition, styled as ${artStyleInstructions[charData.artStyle] || 'digital art'}, masterpiece, 4k resolution`;
 
-      // Habilitamos o BLOCK_NONE explícito nas configurações de segurança para evitar que conceitos de RPG ativem falsos positivos do filtro de segurança do Google
-      const imagePayload = {
-        contents: [
-          {
-            parts: [
-              {
-                text: finalImagePrompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          responseModalities: ["IMAGE"]
-        },
-        safetySettings: [
-          {
-            category: "HARM_CATEGORY_HATE_SPEECH",
-            threshold: "BLOCK_NONE"
-          },
-          {
-            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold: "BLOCK_NONE"
-          },
-          {
-            category: "HARM_CATEGORY_HARASSMENT",
-            threshold: "BLOCK_NONE"
-          },
-          {
-            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_NONE"
-          }
-        ]
-      };
+      // A mágica do Pollinations: Gerador de imagem serverless gratuito que roda via GET sem qualquer restrição de CORS!
+      const randomSeed = Math.floor(Math.random() * 1000000);
+      const generatedImageUrl = `https://image.pollinations.ai/p/${encodeURIComponent(finalImagePrompt)}?width=512&height=512&nologo=true&seed=${randomSeed}`;
 
-      try {
-        const imageResult = await fetchWithRetry(imageUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(imagePayload)
-        });
+      // Pré-carrega a imagem em segundo plano para manter o spinner ativo enquanto a IA desenha a imagem
+      const imgLoader = new Image();
+      imgLoader.src = generatedImageUrl;
 
-        // 1. Verificar se o prompt enviado foi barrado pelos filtros do Google
-        if (imageResult.promptFeedback && imageResult.promptFeedback.blockReason) {
-          throw new Error(`O prompt conceitual foi recusado pela política de conteúdo do Google (${imageResult.promptFeedback.blockReason}).`);
-        }
-
-        // 2. Verificar se o candidate tem alguma sinalização de segurança (SAFETY, IMAGE_SAFETY)
-        const candidate = imageResult.candidates?.[0];
-        if (candidate && candidate.finishReason && ["SAFETY", "IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT"].includes(candidate.finishReason)) {
-          throw new Error(`A imagem foi interceptada pós-geração pelos filtros de segurança de saída (${candidate.finishReason}).`);
-        }
-
-        // 3. Extrair os dados da imagem em base64
-        const inlineDataPart = candidate?.content?.parts?.find(part => part.inlineData);
-        const base64Bytes = inlineDataPart?.inlineData?.data;
-        if (!base64Bytes) {
-          throw new Error("A API do Gemini concluiu a operação mas não entregou os dados binários do avatar na resposta.");
-        }
-
-        const generatedImageUrl = `data:image/png;base64,${base64Bytes}`;
+      imgLoader.onload = async () => {
         const updatedCharacter = { ...charData, imageUrl: generatedImageUrl, imageGenerationFailed: false };
         await saveAndSyncCharacter(updatedCharacter);
-
+        state.loadingImage = false;
+        renderCharacterSheet();
         showToast("Arte do personagem materializada com sucesso!");
-      } catch (err) {
-        console.error("Erro na imagem:", err);
+      };
+
+      imgLoader.onerror = async (err) => {
+        console.error("Falha ao carregar arte conceitual:", err);
         const fallbackImage = `https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=60`;
         const updatedCharacter = { ...charData, imageUrl: fallbackImage, imageGenerationFailed: true };
         await saveAndSyncCharacter(updatedCharacter);
-        
-        // Diagnóstico avançado para o usuário
-        let displayError = err.message;
-        if (displayError.includes("API (429)")) {
-          displayError = "Erro 429 (Cota Esgotada). Google AI Studio requer faturamento ativado (Prepay/Postpay) no painel do seu projeto para permitir geração de imagem. Contas no plano 100% gratuito possuem cota de imagens zerada (0 IPM).";
-        } else if (displayError.includes("API (403)")) {
-          displayError = "Erro 403 (Acesso Negado). Verifique se a sua chave de API possui permissões para o modelo de geração de mídia 'gemini-2.5-flash-image'.";
-        }
-        
-        showError(`Problema na geração do Avatar: ${displayError}`);
-      } finally {
         state.loadingImage = false;
         renderCharacterSheet();
-      }
+        showError("Houve uma falha na rede ao renderizar a imagem externa. Usando imagem alternativa.");
+      };
     }
 
     // REGRA DE REESCRITA DE LORE PURA
@@ -1314,7 +1205,8 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       renderCharacterSheet();
 
       const activeKey = getActiveApiKey();
-      const textModelUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
+      const activeModel = getActiveModel();
+      const textModelUrl = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${activeKey}`;
 
       const systemPrompt = `Você é um mestre de RPG veterano e escritor criativo. 
 Sua única tarefa é reescrever a história de fundo (lore) de um personagem de forma épiquíssima e envolvente (com exatamente 2 parágrafos).
@@ -1619,7 +1511,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
                     <img 
                       src="${char.imageUrl}" 
                       alt="${char.name}" 
-                      class="h-full w-full object-cover" 
+                      class="h-full w-full object-cover group-hover:scale-105 transition-all duration-700" 
                     />
                     ${char.imageGenerationFailed ? `
                       <div class="absolute bottom-2 inset-x-2 bg-red-950/90 border border-red-900 text-red-300 p-2 rounded-lg text-[10px] leading-snug print:hidden">
@@ -2206,14 +2098,14 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
                   <label class="text-[10px] font-bold text-slate-500 uppercase">Descrição & Efeito</label>
                   <textarea
                     id="new-item-desc"
-                    placeholder="Efeitos adicionais, properties mecânicas..."
+                    placeholder="Efeitos adicionais, propriedades mecânicas..."
                     class="w-full h-16 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-300 focus:outline-none resize-none font-sans leading-relaxed"
                   >${state.newItemDesc}</textarea>
                 </div>
 
                 <button
                   id="btn-add-item"
-                  class="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-950/25 transition-all flex items-center justify-center gap-1.5"
+                  class="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-900/25 transition-all flex items-center justify-center gap-1.5"
                 >
                   <i data-lucide="plus" class="h-4 w-4"></i>
                   <span>Adicionar Item</span>
