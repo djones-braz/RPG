@@ -308,7 +308,7 @@
         <span class="bg-red-500/20 p-1 rounded-md text-red-400 font-bold">Aviso</span>
         <div class="flex-1">
           <p class="font-semibold text-red-200">Ops! Algo deu errado:</p>
-          <p id="error-alert-text" class="mt-0.5 leading-relaxed"></p>
+          <p id="error-alert-text" class="mt-0.5 leading-relaxed font-mono whitespace-pre-wrap"></p>
         </div>
       </div>
 
@@ -601,6 +601,13 @@
             delay *= 2;
           } else {
             const errText = await res.text();
+            let parsedErr;
+            try {
+              parsedErr = JSON.parse(errText);
+              if (parsedErr.error && parsedErr.error.message) {
+                 throw new Error(`Erro na API (${res.status}): ${parsedErr.error.message}`);
+              }
+            } catch(e) {}
             throw new Error(`Erro na API (${res.status}): ${errText}`);
           }
         } catch (err) {
@@ -1200,7 +1207,6 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       renderCharacterSheet();
 
       const activeKey = getActiveApiKey();
-      // O modelo gemini-2.5-flash-image substitui modelos descontinuados, rodando via generateContent com resposta de imagem base64
       const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${activeKey}`;
 
       const artStyleInstructions = {
@@ -1214,6 +1220,7 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
 
       const finalImagePrompt = `${charData.imagePrompt}, close-up character portrait, centered composition, styled as ${artStyleInstructions[charData.artStyle] || 'digital art'}, masterpiece, 4k resolution`;
 
+      // Habilitamos o BLOCK_NONE explícito nas configurações de segurança para evitar que conceitos de RPG ativem falsos positivos do filtro de segurança do Google
       const imagePayload = {
         contents: [
           {
@@ -1226,7 +1233,25 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
         ],
         generationConfig: {
           responseModalities: ["IMAGE"]
-        }
+        },
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_NONE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_NONE"
+          },
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_NONE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_NONE"
+          }
+        ]
       };
 
       try {
@@ -1236,13 +1261,26 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
           body: JSON.stringify(imagePayload)
         });
 
-        // Encontra a parte que contém inlineData retornada pelo gemini-2.5-flash-image
-        const inlineDataPart = imageResult.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
+        // 1. Verificar se o prompt enviado foi barrado pelos filtros do Google
+        if (imageResult.promptFeedback && imageResult.promptFeedback.blockReason) {
+          throw new Error(`O prompt conceitual foi recusado pela política de conteúdo do Google (${imageResult.promptFeedback.blockReason}).`);
+        }
+
+        // 2. Verificar se o candidate tem alguma sinalização de segurança (SAFETY, IMAGE_SAFETY)
+        const candidate = imageResult.candidates?.[0];
+        if (candidate && candidate.finishReason && ["SAFETY", "IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT"].includes(candidate.finishReason)) {
+          throw new Error(`A imagem foi interceptada pós-geração pelos filtros de segurança de saída (${candidate.finishReason}).`);
+        }
+
+        // 3. Extrair os dados da imagem em base64
+        const inlineDataPart = candidate?.content?.parts?.find(part => part.inlineData);
         const base64Bytes = inlineDataPart?.inlineData?.data;
-        if (!base64Bytes) throw new Error("A API de imagem não retornou dados.");
+        if (!base64Bytes) {
+          throw new Error("A API do Gemini concluiu a operação mas não entregou os dados binários do avatar na resposta.");
+        }
 
         const generatedImageUrl = `data:image/png;base64,${base64Bytes}`;
-        const updatedCharacter = { ...charData, imageUrl: generatedImageUrl };
+        const updatedCharacter = { ...charData, imageUrl: generatedImageUrl, imageGenerationFailed: false };
         await saveAndSyncCharacter(updatedCharacter);
 
         showToast("Arte do personagem materializada com sucesso!");
@@ -1251,7 +1289,16 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
         const fallbackImage = `https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=60`;
         const updatedCharacter = { ...charData, imageUrl: fallbackImage, imageGenerationFailed: true };
         await saveAndSyncCharacter(updatedCharacter);
-        showError("A lore foi criada, mas houve um erro ao gerar o avatar. Usando imagem alternativa.");
+        
+        // Diagnóstico avançado para o usuário
+        let displayError = err.message;
+        if (displayError.includes("API (429)")) {
+          displayError = "Erro 429 (Cota Esgotada). Google AI Studio requer faturamento ativado (Prepay/Postpay) no painel do seu projeto para permitir geração de imagem. Contas no plano 100% gratuito possuem cota de imagens zerada (0 IPM).";
+        } else if (displayError.includes("API (403)")) {
+          displayError = "Erro 403 (Acesso Negado). Verifique se a sua chave de API possui permissões para o modelo de geração de mídia 'gemini-2.5-flash-image'.";
+        }
+        
+        showError(`Problema na geração do Avatar: ${displayError}`);
       } finally {
         state.loadingImage = false;
         renderCharacterSheet();
@@ -1572,7 +1619,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
                     <img 
                       src="${char.imageUrl}" 
                       alt="${char.name}" 
-                      class="h-full w-full object-cover group-hover:scale-105 transition-all duration-700" 
+                      class="h-full w-full object-cover" 
                     />
                     ${char.imageGenerationFailed ? `
                       <div class="absolute bottom-2 inset-x-2 bg-red-950/90 border border-red-900 text-red-300 p-2 rounded-lg text-[10px] leading-snug print:hidden">
@@ -2159,7 +2206,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
                   <label class="text-[10px] font-bold text-slate-500 uppercase">Descrição & Efeito</label>
                   <textarea
                     id="new-item-desc"
-                    placeholder="Efeitos adicionais, propriedades mecânicas..."
+                    placeholder="Efeitos adicionais, properties mecânicas..."
                     class="w-full h-16 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-300 focus:outline-none resize-none font-sans leading-relaxed"
                   >${state.newItemDesc}</textarea>
                 </div>
