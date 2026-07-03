@@ -116,7 +116,7 @@
           <div>
             <h4 class="font-semibold text-slate-200 mb-1">Como funciona a geração?</h4>
             <p class="leading-relaxed">
-              O sistema utiliza o modelo estável <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> com definições de schema para criar os dados técnicos. Logo após, a imagem é renderizada nativamente pelo modelo <strong class="text-purple-400">gemini-2.5-flash-image</strong>.
+              O sistema utiliza o modelo estável <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> para criar os dados técnicos e a história. Logo após, a imagem é renderizada pelo motor inteligente livre da <strong class="text-purple-400">Pollinations AI</strong>.
             </p>
           </div>
         </div>
@@ -189,49 +189,6 @@
         </div>
       </div>
 
-      <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 shadow-xl space-y-3.5 backdrop-blur-sm relative overflow-hidden">
-        <div class="flex items-center gap-2">
-          <i data-lucide="shield" class="h-4.5 w-4.5 text-purple-400"></i>
-          <h3 class="font-bold text-sm text-white uppercase tracking-wider">Recuperar por Código</h3>
-        </div>
-        
-        <div class="flex gap-2">
-          <input 
-            type="text" 
-            id="recovery-code-input"
-            placeholder="Ex: RPG-A9X2"
-            class="w-full bg-slate-950 border border-slate-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 rounded-xl px-3 py-2.5 text-slate-200 text-xs font-mono uppercase focus:outline-none transition-all placeholder:text-slate-700"
-          />
-          <button
-            id="btn-recover"
-            class="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-purple-900/20 active:scale-95 transition-all flex items-center gap-1.5 shrink-0 uppercase tracking-wider"
-          >
-            <i data-lucide="check" class="h-4 w-4"></i>
-            <span>Recuperar</span>
-          </button>
-        </div>
-        <p class="text-[11px] text-slate-500 leading-normal text-left">
-          Insira o código de segurança para carregar as estatísticas e equipamentos da ficha exatamente como estavam salvos.
-        </p>
-      </div>
-
-      <!-- Histórico / Arquivo de Personagens -->
-      <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 md:p-6 shadow-xl space-y-4 backdrop-blur-sm">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <i data-lucide="book-open" class="h-4.5 w-4.5 text-indigo-400"></i>
-            <h3 class="font-bold text-sm text-white">Arquivo do Studio</h3>
-          </div>
-          <span id="history-counter" class="text-xs bg-slate-950 px-2 py-0.5 rounded-full text-slate-400 border border-slate-850 font-medium">
-            0 / 8 saved(s)
-          </span>
-        </div>
-
-        <div id="history-container">
-          <!-- Renderizado dinamicamente -->
-        </div>
-      </div>
-
       <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 md:p-6 shadow-xl space-y-4 backdrop-blur-sm">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
@@ -269,7 +226,7 @@
           </div>
         </div>
 
-        <!-- Teclado Rápido de Dados e Modificadores -->
+        <!-- Teclado Rápido de Dados -->
         <div class="space-y-2 text-left">
           <span class="text-[9px] font-bold text-slate-500 uppercase block tracking-wider">Somar Dados Rápidos:</span>
           <div class="flex flex-wrap gap-1" id="quick-dice-container">
@@ -320,12 +277,6 @@
     </section>
 
   </main>
-
-  <!-- FOOTER -->
-  <footer class="border-t border-slate-800 bg-slate-950/60 py-6 px-6 text-center text-xs text-slate-500 space-y-2 mt-auto print:hidden">
-    <p>Desenvolvido com Vanilla JS, Tailwind CSS, Gemini 2.5 Flash & Gemini 2.5 Flash Image</p>
-    <p class="text-[10px] text-slate-600">As chaves de API são providas pelo ambiente do canvas ou salvas localmente.</p>
-  </footer>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -443,12 +394,10 @@
         console.error("Erro ao carregar do localStorage:", e);
       }
 
-      // Sincronizar inputs iniciais da coluna esquerda
       document.getElementById('prompt-input').value = state.userPrompt;
       document.getElementById('prompt-counter').innerText = `${state.userPrompt.length}/500`;
       document.getElementById('dice-formula-input').value = state.diceFormula;
 
-      // Event Listeners Base
       document.getElementById('prompt-input').addEventListener('input', (e) => {
         state.userPrompt = e.target.value;
         document.getElementById('prompt-counter').innerText = `${state.userPrompt.length}/500`;
@@ -458,13 +407,8 @@
         state.diceFormula = e.target.value;
       });
 
-      document.getElementById('recovery-code-input').addEventListener('input', (e) => {
-        state.recoveryCode = e.target.value;
-      });
-
       // Botoes
       document.getElementById('btn-generate').addEventListener('click', generateCharacter);
-      document.getElementById('btn-recover').addEventListener('click', () => handleRecoverCharacter(state.recoveryCode));
       document.getElementById('btn-clear-formula').addEventListener('click', clearFormula);
       document.getElementById('btn-roll-dice').addEventListener('click', rollDice);
 
@@ -515,7 +459,6 @@
     function renderAll() {
       renderArtStylesGrid();
       renderQuickPrompts();
-      renderSidebarHistory();
       renderQuickDice();
       renderQuickModifiers();
       renderRollResults();
@@ -550,7 +493,6 @@
       }
     }
 
-    // PERSISTÊNCIA & SYNCS
     const saveHistoryToStorage = (historyList) => {
       try {
         const cleanHistory = historyList.map(item => {
@@ -584,7 +526,6 @@
       return apiKey; 
     };
 
-    // Detecção dinâmica de modelo para mitigar erros 404 de API em ambientes externos
     const getActiveModel = () => {
       return 'gemini-2.5-flash';
     };
@@ -601,13 +542,6 @@
             delay *= 2;
           } else {
             const errText = await res.text();
-            let parsedErr;
-            try {
-              parsedErr = JSON.parse(errText);
-              if (parsedErr.error && parsedErr.error.message) {
-                 throw new Error(`Erro na API (${res.status}): ${parsedErr.error.message}`);
-              }
-            } catch(e) {}
             throw new Error(`Erro na API (${res.status}): ${errText}`);
           }
         } catch (err) {
@@ -618,7 +552,6 @@
       }
     };
 
-    // FUNÇÃO CENTRAL PARA SALVAR E SINCRONIZAR
     const saveAndSyncCharacter = async (charData) => {
       if (!charData) return;
 
@@ -634,6 +567,7 @@
       if (db && auth && currentUser) {
         try {
           let cloudChar = { ...updatedChar };
+          // Removemos URLs gigantonas se houver para evitar limites do firestore
           if (cloudChar.imageUrl && cloudChar.imageUrl.startsWith('data:image')) {
             cloudChar.imageUrl = 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=60';
           }
@@ -672,7 +606,6 @@
       saveHistoryToStorage(state.history);
     };
 
-    // DESIGN DE ART STYLES GRID (LEFT)
     function renderArtStylesGrid() {
       const container = document.getElementById('art-styles-grid');
       container.innerHTML = artStyles.map(style => {
@@ -693,7 +626,6 @@
         `;
       }).join('');
 
-      // Adicionar listeners
       container.querySelectorAll('.art-style-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const styleId = e.currentTarget.getAttribute('data-id');
@@ -703,7 +635,6 @@
       });
     }
 
-    // INSPIRAÇÕES RÁPIDAS
     function renderQuickPrompts() {
       const container = document.getElementById('quick-prompts-container');
       container.innerHTML = quickPrompts.map(p => `
@@ -723,146 +654,6 @@
       });
     }
 
-    // RECUPERAR FICHA POR CÓDIGO
-    async function handleRecoverCharacter(codeToRecover) {
-      const cleanCode = codeToRecover.trim().toUpperCase();
-      if (!cleanCode) {
-        showError("Por favor, digite um código válido.");
-        return;
-      }
-      state.loadingRecovery = true;
-      showError(null);
-      renderCharacterSheet();
-
-      try {
-        let recoveredChar = null;
-
-        // Nuvem (Regra 2 - getDoc simples)
-        if (db && auth && currentUser) {
-          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'character_codes', cleanCode);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            recoveredChar = docSnap.data();
-          }
-        }
-
-        // Local Fallback
-        if (!recoveredChar) {
-          const localCodes = localStorage.getItem('rpg_studio_codes');
-          if (localCodes) {
-            const parsedCodes = JSON.parse(localCodes);
-            if (parsedCodes[cleanCode]) {
-              recoveredChar = parsedCodes[cleanCode];
-            }
-          }
-        }
-
-        if (recoveredChar) {
-          state.character = recoveredChar;
-          // Adiciona ao histórico ativo
-          const filtered = state.history.filter(item => item.name !== recoveredChar.name);
-          state.history = [recoveredChar, ...filtered].slice(0, 8);
-          saveHistoryToStorage(state.history);
-
-          showToast(`Ficha de "${recoveredChar.name}" carregada via código! 🔮`);
-          document.getElementById('recovery-code-input').value = '';
-          state.recoveryCode = '';
-        } else {
-          showError(`Código "${cleanCode}" não foi encontrado na nuvem ou neste navegador.`);
-        }
-      } catch (err) {
-        console.error("Erro ao recuperar ficha:", err);
-        showError("Erro ao se conectar ao servidor de recuperação de fichas.");
-      } finally {
-        state.loadingRecovery = false;
-        renderAll();
-      }
-    }
-
-    // ARQUIVO DO STUDIO (SIDEBAR)
-    function renderSidebarHistory() {
-      const container = document.getElementById('history-container');
-      document.getElementById('history-counter').innerText = `${state.history.length} / 8 saved(s)`;
-
-      if (state.history.length === 0) {
-        container.innerHTML = `
-          <p class="text-xs text-slate-500 text-center py-6 border border-dashed border-slate-800 rounded-xl">
-            Nenhum personagem arquivado ainda. Crie o seu primeiro!
-          </p>
-        `;
-        return;
-      }
-
-      container.innerHTML = `
-        <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
-          ${state.history.map((item, idx) => {
-            const isSelected = state.character && state.character.name === item.name;
-            return `
-              <div
-                data-name="${item.name}"
-                class="history-card p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                  isSelected
-                    ? 'border-purple-500/40 bg-purple-950/10'
-                    : 'border-slate-850 bg-slate-950/40 hover:bg-slate-900'
-                }"
-              >
-                <div class="flex items-center gap-3 overflow-hidden pointer-events-none">
-                  <div class="h-9 w-9 rounded-lg bg-slate-800 overflow-hidden shrink-0 border border-slate-700/50 flex items-center justify-center">
-                    ${item.imageUrl 
-                      ? `<img src="${item.imageUrl}" alt="${item.name}" class="h-full w-full object-cover" />` 
-                      : `<i data-lucide="user" class="h-4 w-4 text-slate-500"></i>`
-                    }
-                  </div>
-                  <div class="text-left overflow-hidden">
-                    <p class="text-xs font-bold text-slate-200 truncate">${item.name}</p>
-                    <p class="text-[10px] text-slate-500 truncate">${item.characterClass}</p>
-                  </div>
-                </div>
-                
-                <button 
-                  data-name="${item.name}"
-                  class="btn-delete-history p-1 text-slate-500 hover:text-red-400 rounded transition-colors"
-                  title="Apagar personagem"
-                >
-                  <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
-                </button>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      `;
-
-      // Listeners
-      container.querySelectorAll('.history-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-          const charName = e.currentTarget.getAttribute('data-name');
-          const found = state.history.find(item => item.name === charName);
-          if (found) {
-            state.character = found;
-            showError(null);
-            renderAll();
-          }
-        });
-      });
-
-      container.querySelectorAll('.btn-delete-history').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const charName = e.currentTarget.getAttribute('data-name');
-          state.history = state.history.filter(item => item.name !== charName);
-          saveHistoryToStorage(state.history);
-          if (state.character && state.character.name === charName) {
-            state.character = state.history[0] || null;
-          }
-          showToast("Personagem removido do arquivo.");
-          renderAll();
-        });
-      });
-
-      lucide.createIcons();
-    }
-
-    // ROLAGEM DE DADOS MESA
     function renderQuickDice() {
       const container = document.getElementById('quick-dice-container');
       const dice = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'];
@@ -904,180 +695,6 @@
           appendToFormula(mod);
         });
       });
-    }
-
-    function appendToFormula(val) {
-      let formula = state.diceFormula.trim();
-      if (!formula) {
-        state.diceFormula = val;
-      } else if (['+', '-', '*', '/'].includes(formula.slice(-1))) {
-        state.diceFormula = `${formula} ${val}`;
-      } else {
-        state.diceFormula = `${formula} + ${val}`;
-      }
-      document.getElementById('dice-formula-input').value = state.diceFormula;
-    }
-
-    function clearFormula() {
-      state.diceFormula = '';
-      document.getElementById('dice-formula-input').value = '';
-    }
-
-    // CALCULAR ROLAGEM DE DADO MECÂNICA
-    function rollDice() {
-      executeCalculatedRoll(state.diceFormula, 'Mesa de Dados');
-    }
-
-    function executeCalculatedRoll(formulaString, sourceLabel) {
-      let expression = formulaString.trim().toUpperCase();
-      if (!expression) return;
-
-      const diceBreakdown = [];
-      let processingExpr = expression;
-
-      // Pegar modificadores da ficha atual se houver
-      const charMods = {
-        'FOR': state.character ? Math.floor(((state.character.attributes.strength || 10) - 10) / 2) : 0,
-        'DES': state.character ? Math.floor(((state.character.attributes.dexterity || 10) - 10) / 2) : 0,
-        'CON': state.character ? Math.floor(((state.character.attributes.constitution || 10) - 10) / 2) : 0,
-        'INT': state.character ? Math.floor(((state.character.attributes.intelligence || 10) - 10) / 2) : 0,
-        'SAB': state.character ? Math.floor(((state.character.attributes.wisdom || 10) - 10) / 2) : 0,
-        'CAR': state.character ? Math.floor(((state.character.attributes.charisma || 10) - 10) / 2) : 0,
-      };
-
-      Object.keys(charMods).forEach(key => {
-        const regex = new RegExp(`\\b${key}\\b`, 'g');
-        if (regex.test(processingExpr)) {
-          const val = charMods[key];
-          processingExpr = processingExpr.replace(regex, val >= 0 ? `+${val}` : `${val}`);
-          diceBreakdown.push({ name: `Mod ${key}`, detail: val >= 0 ? `+${val}` : `${val}`, value: val });
-        }
-      });
-
-      const diceRegex = /(\d*)[D](\d+)/g;
-      let match;
-      const matchesToRoll = [];
-
-      while ((match = diceRegex.exec(processingExpr)) !== null) {
-        matchesToRoll.push({
-          fullMatch: match[0],
-          count: match[1] === "" ? 1 : parseInt(match[1]),
-          sides: parseInt(match[2])
-        });
-      }
-
-      let rolledExpr = processingExpr;
-
-      matchesToRoll.forEach(item => {
-        const rolls = [];
-        for (let i = 0; i < item.count; i++) {
-          rolls.push(Math.floor(Math.random() * item.sides) + 1);
-        }
-        const sum = rolls.reduce((a, b) => a + b, 0);
-        const detailStr = `[${rolls.join(' + ')}]`;
-        
-        rolledExpr = rolledExpr.replace(item.fullMatch, sum);
-        diceBreakdown.push({
-          name: item.fullMatch,
-          detail: detailStr,
-          value: sum,
-          individual: rolls
-        });
-      });
-
-      const sanitizedMathExpr = rolledExpr.replace(/[^0-9+\-*/().\s]/g, '');
-      let finalSum = 0;
-      try {
-        finalSum = Function(`"use strict"; return (${sanitizedMathExpr})`)();
-        if (finalSum < 0) finalSum = 0;
-      } catch (calcError) {
-        showError(`Erro de Sintaxe na fórmula "${formulaString}". Verifique o formato.`);
-        return;
-      }
-
-      const currentRoll = {
-        formula: `${sourceLabel} (${expression})`,
-        breakdown: diceBreakdown,
-        calculatedExpr: sanitizedMathExpr,
-        total: finalSum,
-        timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-      };
-
-      state.lastRoll = currentRoll;
-      state.rollHistory = [currentRoll, ...state.rollHistory].slice(0, 5);
-      localStorage.setItem('rpg_studio_rolls', JSON.stringify(state.rollHistory));
-
-      showToast(`Rolagem [${sourceLabel}]: ${finalSum}! ⚔️`);
-      renderRollResults();
-    }
-
-    function renderRollResults() {
-      const container = document.getElementById('roll-result-container');
-      const histContainer = document.getElementById('roll-history-container');
-      const histList = document.getElementById('roll-history-list');
-
-      if (!state.lastRoll) {
-        container.innerHTML = '';
-        histContainer.classList.add('hidden');
-        return;
-      }
-
-      const r = state.lastRoll;
-      container.innerHTML = `
-        <div class="p-3.5 bg-slate-950/80 rounded-xl border border-slate-850 space-y-2 text-left animate-in fade-in zoom-in-95 duration-150">
-          <div class="flex justify-between items-center">
-            <span class="text-[10px] font-bold text-purple-400 uppercase tracking-widest font-mono truncate max-w-[200px]">${r.formula}</span>
-            <span class="text-[9px] text-slate-600 font-mono shrink-0">${r.timestamp}</span>
-          </div>
-          
-          <div class="flex items-baseline gap-2">
-            <span class="text-3xl font-black text-white bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent font-mono">
-              ${r.total}
-            </span>
-            <span class="text-xs text-slate-500 font-medium">resultado final</span>
-          </div>
-
-          <div class="space-y-1 border-t border-slate-900 pt-1.5">
-            <p class="text-[9px] font-bold text-slate-500 uppercase">Detalhamento dos Dados:</p>
-            <div class="flex flex-col gap-1">
-              ${r.breakdown.length === 0 
-                ? `<span class="text-[11px] text-slate-500 font-mono italic">Apenas bônus fixos aplicados.</span>` 
-                : r.breakdown.map(b => `
-                  <div class="flex justify-between items-center text-[11px] font-mono">
-                    <span class="text-slate-400">${b.name}</span>
-                    <div class="flex items-center gap-1.5">
-                      <span class="text-slate-600 text-[10px]">${b.detail}</span>
-                      <span class="text-indigo-300 font-bold">= ${b.value}</span>
-                    </div>
-                  </div>
-                `).join('')
-              }
-            </div>
-            <div class="text-[10px] font-mono text-slate-500 flex justify-between pt-1 border-t border-slate-950">
-              <span>Equação Simplificada:</span>
-              <span>${r.calculatedExpr} = ${r.total}</span>
-            </div>
-          </div>
-        </div>
-      `;
-
-      // Histórico de Rolagem Adicional
-      if (state.rollHistory.length > 1) {
-        histContainer.classList.remove('hidden');
-        histList.innerHTML = state.rollHistory.slice(1, 4).map(h => `
-          <div class="flex justify-between items-center text-[10px] font-mono bg-slate-950/40 p-1.5 rounded border border-slate-900">
-            <span class="text-slate-400 truncate max-w-[120px]">${h.formula}</span>
-            <div class="flex items-center gap-2">
-              <span class="text-slate-600 text-[9px]">${h.timestamp}</span>
-              <span class="font-bold text-purple-400">${h.total}</span>
-            </div>
-          </div>
-        `).join('');
-      } else {
-        histContainer.classList.add('hidden');
-      }
-
-      lucide.createIcons();
     }
 
     async function generateCharacter() {
@@ -1206,11 +823,8 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       state.loadingImage = true;
       renderCharacterSheet();
 
-      const activeKey = getActiveApiKey();
-      const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${activeKey}`;
-
       const artStyleInstructions = {
-        'concept-art': 'conceptual digital painting, character concept sheet, highly detailed, dramatic shadows, cinematic lighting, sharp focus',
+        'concept-art': 'conceptual digital painting, character concept sheet, highly detailed, dramatic shadows, cinematic lighting, sharp focus, digital concept-art style',
         'anime': 'modern anime style character portrait, beautiful lineart, vibrant flat shading, high resolution anime key art, studio trigger style',
         'pixel-art': 'meticulously crafted 16-bit pixel art, detailed retro game sprite, isometric fantasy style, limited palette, highly textured',
         'realistic': 'photorealistic character portrait, shot on 85mm lens, f/1.4, volumetric lighting, rich fabric textures, hyper-detailed skin, cinematic color grading',
@@ -1220,67 +834,22 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
 
       const finalImagePrompt = `${charData.imagePrompt}, close-up character portrait, centered composition, styled as ${artStyleInstructions[charData.artStyle] || 'digital art'}, masterpiece, 4k resolution`;
 
-      // Habilitamos o BLOCK_NONE explícito nas configurações de segurança para evitar que conceitos de RPG ativem falsos positivos do filtro de segurança do Google
-      const imagePayload = {
-        contents: [
-          {
-            parts: [
-              {
-                text: finalImagePrompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          responseModalities: ["IMAGE"]
-        },
-        safetySettings: [
-          {
-            category: "HARM_CATEGORY_HATE_SPEECH",
-            threshold: "BLOCK_NONE"
-          },
-          {
-            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold: "BLOCK_NONE"
-          },
-          {
-            category: "HARM_CATEGORY_HARASSMENT",
-            threshold: "BLOCK_NONE"
-          },
-          {
-            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_NONE"
-          }
-        ]
-      };
+      // Geramos um seed aleatório para garantir novidade em cada imagem gerada
+      const seed = Math.floor(Math.random() * 1000000);
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalImagePrompt)}?width=512&height=512&nologo=true&private=true&seed=${seed}`;
 
       try {
-        const imageResult = await fetchWithRetry(imageUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(imagePayload)
+        // Pré-carregamento síncrono para garantir que o spinner roxo dure até a imagem estar totalmente carregada
+        await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.src = pollinationsUrl;
+          img.onload = () => resolve(pollinationsUrl);
+          img.onerror = (err) => reject(err);
+          // Timeout de resiliência de 25 segundos
+          setTimeout(() => reject(new Error("Timeout ao renderizar")), 25000);
         });
 
-        // 1. Verificar se o prompt enviado foi barrado pelos filtros do Google
-        if (imageResult.promptFeedback && imageResult.promptFeedback.blockReason) {
-          throw new Error(`O prompt conceitual foi recusado pela política de conteúdo do Google (${imageResult.promptFeedback.blockReason}).`);
-        }
-
-        // 2. Verificar se o candidate tem alguma sinalização de segurança (SAFETY, IMAGE_SAFETY)
-        const candidate = imageResult.candidates?.[0];
-        if (candidate && candidate.finishReason && ["SAFETY", "IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT"].includes(candidate.finishReason)) {
-          throw new Error(`A imagem foi interceptada pós-geração pelos filtros de segurança de saída (${candidate.finishReason}).`);
-        }
-
-        // 3. Extrair os dados da imagem em base64
-        const inlineDataPart = candidate?.content?.parts?.find(part => part.inlineData);
-        const base64Bytes = inlineDataPart?.inlineData?.data;
-        if (!base64Bytes) {
-          throw new Error("A API do Gemini concluiu a operação mas não entregou os dados binários do avatar na resposta.");
-        }
-
-        const generatedImageUrl = `data:image/png;base64,${base64Bytes}`;
-        const updatedCharacter = { ...charData, imageUrl: generatedImageUrl, imageGenerationFailed: false };
+        const updatedCharacter = { ...charData, imageUrl: pollinationsUrl, imageGenerationFailed: false };
         await saveAndSyncCharacter(updatedCharacter);
 
         showToast("Arte do personagem materializada com sucesso!");
@@ -1289,23 +858,13 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
         const fallbackImage = `https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=60`;
         const updatedCharacter = { ...charData, imageUrl: fallbackImage, imageGenerationFailed: true };
         await saveAndSyncCharacter(updatedCharacter);
-        
-        // Diagnóstico avançado para o usuário
-        let displayError = err.message;
-        if (displayError.includes("API (429)")) {
-          displayError = "Erro 429 (Cota Esgotada). Google AI Studio requer faturamento ativado (Prepay/Postpay) no painel do seu projeto para permitir geração de imagem. Contas no plano 100% gratuito possuem cota de imagens zerada (0 IPM).";
-        } else if (displayError.includes("API (403)")) {
-          displayError = "Erro 403 (Acesso Negado). Verifique se a sua chave de API possui permissões para o modelo de geração de mídia 'gemini-2.5-flash-image'.";
-        }
-        
-        showError(`Problema na geração do Avatar: ${displayError}`);
+        showError("Não foi possível carregar a imagem externa. Exibindo arte alternativa.");
       } finally {
         state.loadingImage = false;
         renderCharacterSheet();
       }
     }
 
-    // REGRA DE REESCRITA DE LORE PURA
     async function regenerateLore() {
       if (!state.character) return;
       
@@ -1619,7 +1178,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
                     <img 
                       src="${char.imageUrl}" 
                       alt="${char.name}" 
-                      class="h-full w-full object-cover" 
+                      class="h-full w-full object-cover group-hover:scale-105 transition-all duration-700" 
                     />
                     ${char.imageGenerationFailed ? `
                       <div class="absolute bottom-2 inset-x-2 bg-red-950/90 border border-red-900 text-red-300 p-2 rounded-lg text-[10px] leading-snug print:hidden">
@@ -2431,14 +1990,6 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
         downloadPdf();
       });
 
-      // Regenerar Arte
-      const btnRegenAvatar = document.getElementById('btn-regenerate-avatar');
-      if (btnRegenAvatar) {
-        btnRegenAvatar.addEventListener('click', () => {
-          generateAvatar(state.character);
-        });
-      }
-
       // HP modifiers
       document.getElementById('input-hp-amount')?.addEventListener('input', (e) => {
         state.hpAmount = Math.max(1, parseInt(e.target.value) || 1);
@@ -2628,7 +2179,6 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
       });
     }
 
-    // AÇÃO DE ATACAR OU CONSUMIR ITEM (RESOLVENDO CONTEXTOS SÍNCRONOS)
     function useEquipmentItem(item, index) {
       if (!state.character || item.quantity <= 0) return;
 
