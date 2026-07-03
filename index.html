@@ -576,7 +576,6 @@
       }
     };
 
-    // FUNÇÃO CENTRAL PARA SALVAR E SINCRONIZAR
     const saveAndSyncCharacter = async (charData) => {
       if (!charData) return;
 
@@ -1037,25 +1036,20 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       const finalImagePrompt = `${charData.imagePrompt}, close-up character portrait, centered composition, styled as ${artStyleInstructions[charData.artStyle] || 'digital art'}, masterpiece, 4k resolution`;
 
       try {
-        // Para resolver o problema de geração de imagem de forma robusta e livre de bloqueios de CORS, faturamento ou chaves,
-        // usamos o Pollinations AI (que atua como uma ponte livre, gratuita e síncrona para geração de imagem).
         const encodedPrompt = encodeURIComponent(finalImagePrompt);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&nologo=true&enhance=true&seed=${Math.floor(Math.random() * 100000)}`;
+        const seed = Math.floor(Math.random() * 1000000);
+        // Link estático estruturado que não gera erros de CORS ao ser instanciado em tags <img>
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&nologo=true&enhance=true&seed=${seed}`;
 
-        // Baixamos a imagem em Base64 para que seja sincronizada nativamente no Firestore/localStorage do usuário
-        const imageResponse = await fetch(imageUrl);
-        if (!imageResponse.ok) throw new Error("A ponte externa de imagens Pollinations falhou ao renderizar.");
-        
-        const blob = await imageResponse.blob();
-        
-        const base64Bytes = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
+        // Executa preloader assíncrono para garantir que a imagem existe e o cache do navegador processe-a antes de sumir o spinner
+        await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.src = imageUrl;
+          img.onload = () => resolve(imageUrl);
+          img.onerror = () => reject(new Error("A ponte externa de imagens Pollinations falhou ao renderizar."));
         });
 
-        const updatedCharacter = { ...charData, imageUrl: base64Bytes, imageGenerationFailed: false };
+        const updatedCharacter = { ...charData, imageUrl: imageUrl, imageGenerationFailed: false };
         await saveAndSyncCharacter(updatedCharacter);
 
         showToast("Arte do personagem materializada com sucesso!");
@@ -1391,7 +1385,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
                     />
                     ${char.imageGenerationFailed ? `
                       <div class="absolute bottom-2 inset-x-2 bg-red-950/90 border border-red-900 text-red-300 p-2 rounded-lg text-[10px] leading-snug print:hidden">
-                        Erro ao materializar arte de avatar via Google Imagen API.
+                        Erro ao materializar arte conceitual. Mostrando avatar alternativo.
                       </div>
                     ` : ''}
                   ` : `
@@ -1949,7 +1943,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
                       type="number"
                       id="new-potion-amount"
                       value="${state.potionRestoreAmount}"
-                      class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none font-mono"
+                      class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none font-mono"
                       min="1"
                     />
                   </div>
