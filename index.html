@@ -116,7 +116,7 @@
           <div>
             <h4 class="font-semibold text-slate-200 mb-1">Como funciona a geração?</h4>
             <p class="leading-relaxed">
-              O sistema utiliza o modelo estável <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> com definições de schema para criar os dados técnicos. Logo após, a imagem é renderizada de forma autônoma e gratuita com base no prompt gerado.
+              O sistema utiliza o modelo estável <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> com definições de schema para criar os dados técnicos. Logo após, a imagem é renderizada pelo modelo <strong class="text-purple-400">Imagen 3.0 ou 4.0</strong>.
             </p>
           </div>
         </div>
@@ -281,8 +281,8 @@
 
   <!-- FOOTER -->
   <footer class="border-t border-slate-800 bg-slate-950/60 py-6 px-6 text-center text-xs text-slate-500 space-y-2 mt-auto print:hidden">
-    <p>Desenvolvido com Vanilla JS, Tailwind CSS, Gemini 2.5 Flash & Pollinations AI</p>
-    <p class="text-[10px] text-slate-600">As chaves de API do Gemini são providas pelo ambiente do canvas ou salvas localmente.</p>
+    <p>Desenvolvido com Vanilla JS, Tailwind CSS, Gemini 2.5 Flash & Imagen 3.0/4.0</p>
+    <p class="text-[10px] text-slate-600">As chaves de API são providas pelo ambiente do canvas ou salvas localmente.</p>
   </footer>
 
   <script type="module">
@@ -308,9 +308,6 @@
       successToast: null,
       configOpen: false,
       customApiKey: '',
-      history: [],
-      activeTab: 'lore', // 'lore' | 'skills' | 'equipment' | 'raw'
-      isEditing: false,
 
       // Ajustes Rápidos da Ficha
       hpAmount: 10,
@@ -333,10 +330,7 @@
 
       newSkillName: '',
       newSkillCost: '10 de Mana',
-      newSkillDesc: '',
-
-      recoveryCode: '',
-      loadingRecovery: false
+      newSkillDesc: ''
     };
 
     // Firebase state references
@@ -376,14 +370,11 @@
     });
 
     async function initApp() {
-      // Carregar histórico local
+      // Carregar personagem do armazenamento local
       try {
-        const savedHistory = localStorage.getItem('rpg_studio_history');
-        if (savedHistory) {
-          state.history = JSON.parse(savedHistory);
-          if (state.history.length > 0) {
-            state.character = state.history[0];
-          }
+        const savedCharacter = localStorage.getItem('rpg_studio_character');
+        if (savedCharacter) {
+          state.character = JSON.parse(savedCharacter);
         }
         const savedRolls = localStorage.getItem('rpg_studio_rolls');
         if (savedRolls) {
@@ -416,13 +407,8 @@
         state.diceFormula = e.target.value;
       });
 
-      document.getElementById('recovery-code-input').addEventListener('input', (e) => {
-        state.recoveryCode = e.target.value;
-      });
-
       // Botoes
       document.getElementById('btn-generate').addEventListener('click', generateCharacter);
-      document.getElementById('btn-recover').addEventListener('click', () => handleRecoverCharacter(state.recoveryCode));
       document.getElementById('btn-clear-formula').addEventListener('click', clearFormula);
       document.getElementById('btn-roll-dice').addEventListener('click', rollDice);
 
@@ -473,7 +459,6 @@
     function renderAll() {
       renderArtStylesGrid();
       renderQuickPrompts();
-      renderSidebarHistory();
       renderQuickDice();
       renderQuickModifiers();
       renderRollResults();
@@ -508,33 +493,6 @@
       }
     }
 
-    // PERSISTÊNCIA & SYNCS
-    const saveHistoryToStorage = (historyList) => {
-      try {
-        const cleanHistory = historyList.map(item => {
-          if (item.imageUrl && item.imageUrl.startsWith('data:image')) {
-            return { 
-              ...item, 
-              imageUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=60' 
-            };
-          }
-          return item;
-        });
-        localStorage.setItem('rpg_studio_history', JSON.stringify(cleanHistory));
-      } catch (e) {
-        console.warn("Storage quota exceeded. Reduzindo histórico local.", e);
-        try {
-          const minimalHistory = historyList.slice(0, 3).map(item => ({
-            ...item,
-            imageUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500'
-          }));
-          localStorage.setItem('rpg_studio_history', JSON.stringify(minimalHistory));
-        } catch (innerError) {
-          console.error("Failsafe Storage falhou completamente.", innerError);
-        }
-      }
-    };
-
     const getActiveApiKey = () => {
       if (state.customApiKey && state.customApiKey.trim() !== '') {
         return state.customApiKey.trim();
@@ -544,7 +502,11 @@
 
     // Detecção dinâmica de modelo para mitigar erros 404 de API em ambientes externos
     const getActiveModel = () => {
-      return 'gemini-2.5-flash';
+      // Usa um modelo estável quando há chave externa para não falhar publicamente
+      if (state.customApiKey && state.customApiKey.trim() !== '') {
+        return 'gemini-1.5-flash';
+      }
+      return 'gemini-2.5-flash-preview-09-2025';
     };
 
     const fetchWithRetry = async (url, options, maxRetries = 5) => {
@@ -559,7 +521,7 @@
             delay *= 2;
           } else {
             const errText = await res.text();
-            throw new Error(`Erro na API (${res.status}): ${errText}`);
+            throw new Error(`API (${res.status}): ${errText}`);
           }
         } catch (err) {
           if (i === maxRetries - 1) throw err;
@@ -579,7 +541,17 @@
       }
 
       state.character = updatedChar;
-      updateHistoryItem(updatedChar);
+
+      // Persistir localmente a ficha atualizada
+      try {
+        let localChar = { ...updatedChar };
+        if (localChar.imageUrl && localChar.imageUrl.startsWith('data:image')) {
+          localChar.imageUrl = 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=60';
+        }
+        localStorage.setItem('rpg_studio_character', JSON.stringify(localChar));
+      } catch (e) {
+        console.warn("Storage quota exceeded.", e);
+      }
 
       // Cloud Sync (Regra 1, 2, 3)
       if (db && auth && currentUser) {
@@ -596,31 +568,8 @@
         }
       }
 
-      // Backup local em lote de códigos
-      try {
-        const localCodes = localStorage.getItem('rpg_studio_codes') ? JSON.parse(localStorage.getItem('rpg_studio_codes')) : {};
-        let localChar = { ...updatedChar };
-        if (localChar.imageUrl && localChar.imageUrl.startsWith('data:image')) {
-          localChar.imageUrl = 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=60';
-        }
-        localCodes[updatedChar.securityCode] = localChar;
-        localStorage.setItem('rpg_studio_codes', JSON.stringify(localCodes));
-      } catch (e) {
-        console.warn("Erro no backup local por códigos:", e);
-      }
-
       renderAll();
       return updatedChar;
-    };
-
-    const updateHistoryItem = (updatedChar) => {
-      const index = state.history.findIndex(item => item.name === updatedChar.name);
-      if (index !== -1) {
-        state.history[index] = updatedChar;
-      } else {
-        state.history = [updatedChar, ...state.history].slice(0, 8);
-      }
-      saveHistoryToStorage(state.history);
     };
 
     // DESIGN DE ART STYLES GRID (LEFT)
@@ -674,145 +623,6 @@
       });
     }
 
-    // RECUPERAR FICHA POR CÓDIGO
-    async function handleRecoverCharacter(codeToRecover) {
-      const cleanCode = codeToRecover.trim().toUpperCase();
-      if (!cleanCode) {
-        showError("Por favor, digite um código válido.");
-        return;
-      }
-      state.loadingRecovery = true;
-      showError(null);
-      renderCharacterSheet();
-
-      try {
-        let recoveredChar = null;
-
-        // Nuvem (Regra 2 - getDoc simples)
-        if (db && auth && currentUser) {
-          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'character_codes', cleanCode);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            recoveredChar = docSnap.data();
-          }
-        }
-
-        // Local Fallback
-        if (!recoveredChar) {
-          const localCodes = localStorage.getItem('rpg_studio_codes');
-          if (localCodes) {
-            const parsedCodes = JSON.parse(localCodes);
-            if (parsedCodes[cleanCode]) {
-              recoveredChar = parsedCodes[cleanCode];
-            }
-          }
-        }
-
-        if (recoveredChar) {
-          state.character = recoveredChar;
-          // Adiciona ao histórico ativo
-          const filtered = state.history.filter(item => item.name !== recoveredChar.name);
-          state.history = [recoveredChar, ...filtered].slice(0, 8);
-          saveHistoryToStorage(state.history);
-
-          showToast(`Ficha de "${recoveredChar.name}" carregada via código! 🔮`);
-          document.getElementById('recovery-code-input').value = '';
-          state.recoveryCode = '';
-        } else {
-          showError(`Código "${cleanCode}" não foi encontrado na nuvem ou neste navegador.`);
-        }
-      } catch (err) {
-        console.error("Erro ao recuperar ficha:", err);
-        showError("Erro ao se conectar ao servidor de recuperação de fichas.");
-      } finally {
-        state.loadingRecovery = false;
-        renderAll();
-      }
-    }
-
-    // ARQUIVO DO STUDIO (SIDEBAR)
-    function renderSidebarHistory() {
-      const container = document.getElementById('history-container');
-      document.getElementById('history-counter').innerText = `${state.history.length} / 8 saved(s)`;
-
-      if (state.history.length === 0) {
-        container.innerHTML = `
-          <p class="text-xs text-slate-500 text-center py-6 border border-dashed border-slate-800 rounded-xl">
-            Nenhum personagem arquivado ainda. Crie o seu primeiro!
-          </p>
-        `;
-        return;
-      }
-
-      container.innerHTML = `
-        <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
-          ${state.history.map((item, idx) => {
-            const isSelected = state.character && state.character.name === item.name;
-            return `
-              <div
-                data-name="${item.name}"
-                class="history-card p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                  isSelected
-                    ? 'border-purple-500/40 bg-purple-950/10'
-                    : 'border-slate-850 bg-slate-950/40 hover:bg-slate-900'
-                }"
-              >
-                <div class="flex items-center gap-3 overflow-hidden pointer-events-none">
-                  <div class="h-9 w-9 rounded-lg bg-slate-800 overflow-hidden shrink-0 border border-slate-700/50 flex items-center justify-center">
-                    ${item.imageUrl 
-                      ? `<img src="${item.imageUrl}" alt="${item.name}" class="h-full w-full object-cover" />` 
-                      : `<i data-lucide="user" class="h-4 w-4 text-slate-500"></i>`
-                    }
-                  </div>
-                  <div class="text-left overflow-hidden">
-                    <p class="text-xs font-bold text-slate-200 truncate">${item.name}</p>
-                    <p class="text-[10px] text-slate-500 truncate">${item.characterClass}</p>
-                  </div>
-                </div>
-                
-                <button 
-                  data-name="${item.name}"
-                  class="btn-delete-history p-1 text-slate-500 hover:text-red-400 rounded transition-colors"
-                  title="Apagar personagem"
-                >
-                  <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
-                </button>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      `;
-
-      // Listeners
-      container.querySelectorAll('.history-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-          const charName = e.currentTarget.getAttribute('data-name');
-          const found = state.history.find(item => item.name === charName);
-          if (found) {
-            state.character = found;
-            showError(null);
-            renderAll();
-          }
-        });
-      });
-
-      container.querySelectorAll('.btn-delete-history').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const charName = e.currentTarget.getAttribute('data-name');
-          state.history = state.history.filter(item => item.name !== charName);
-          saveHistoryToStorage(state.history);
-          if (state.character && state.character.name === charName) {
-            state.character = state.history[0] || null;
-          }
-          showToast("Personagem removido do arquivo.");
-          renderAll();
-        });
-      });
-
-      lucide.createIcons();
-    }
-
     // ROLAGEM DE DADOS MESA
     function renderQuickDice() {
       const container = document.getElementById('quick-dice-container');
@@ -862,7 +672,7 @@
       if (!formula) {
         state.diceFormula = val;
       } else if (['+', '-', '*', '/'].includes(formula.slice(-1))) {
-        state.formula = `${formula} ${val}`;
+        state.diceFormula = `${formula} ${val}`;
       } else {
         state.diceFormula = `${formula} + ${val}`;
       }
@@ -1153,47 +963,73 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       }
     }
 
-    // ALTERNATIVA COMPLETAMENTE LIVRE DE CORS E DE CRÉDITOS: POLLINATIONS AI
     async function generateAvatar(charData) {
       state.loadingImage = true;
       renderCharacterSheet();
 
+      const activeKey = getActiveApiKey();
+      const isCustomKey = state.customApiKey && state.customApiKey.trim() !== '';
+      
+      // Diferencia dinamicamente o modelo público (Imagen 3.0) do modelo de preview interno (Imagen 4.0)
+      const imageModel = isCustomKey ? 'imagen-3.0-generate-001' : 'imagen-4.0-generate-001';
+      const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/${imageModel}:predict?key=${activeKey}`;
+
       const artStyleInstructions = {
-        'concept-art': 'highly detailed conceptual digital painting, character concept sheet, dramatic shadows, cinematic lighting, sharp focus, artstation masterpiece',
-        'anime': 'modern anime style character portrait, beautiful clean lineart, vibrant flat shading, high resolution anime key art, studio trigger style',
-        'pixel-art': 'meticulously crafted 16-bit pixel art, detailed retro game sprite, fantasy style, limited palette, highly textured, perfect pixel styling',
+        'concept-art': 'conceptual digital painting, character concept sheet, highly detailed, dramatic shadows, cinematic lighting, sharp focus',
+        'anime': 'modern anime style character portrait, beautiful lineart, vibrant flat shading, high resolution anime key art, studio trigger style',
+        'pixel-art': 'meticulously crafted 16-bit pixel art, detailed retro game sprite, isometric fantasy style, limited palette, highly textured',
         'realistic': 'photorealistic character portrait, shot on 85mm lens, f/1.4, volumetric lighting, rich fabric textures, hyper-detailed skin, cinematic color grading',
         'cyberpunk-neon': 'cyberpunk dystopian portrait, heavy neon illumination, reflections of pink and cyan lights, high tech elements, futuristic key-art',
-        'fantasy-oil': 'gorgeous detailed oil painting, textured canvas, heavy brush strokes, classical renaissance fantasy portrait, warm lighting'
+        'fantasy-oil': 'gorgeous oil painting, textured canvas, heavy brush strokes, classical renaissance fantasy portrait, warm lighting'
       };
 
       const finalImagePrompt = `${charData.imagePrompt}, close-up character portrait, centered composition, styled as ${artStyleInstructions[charData.artStyle] || 'digital art'}, masterpiece, 4k resolution`;
 
-      // A mágica do Pollinations: Gerador de imagem serverless gratuito que roda via GET sem qualquer restrição de CORS!
-      const randomSeed = Math.floor(Math.random() * 1000000);
-      const generatedImageUrl = `https://image.pollinations.ai/p/${encodeURIComponent(finalImagePrompt)}?width=512&height=512&nologo=true&seed=${randomSeed}`;
+      // A API pública restringe instances como lista [], enquanto o preview pode demandar objeto puro. Tratamento condicional para evitar erro HTTP 400.
+      const imagePayload = isCustomKey
+        ? {
+            instances: [{ prompt: finalImagePrompt }],
+            parameters: { sampleCount: 1 }
+          }
+        : {
+            instances: { prompt: finalImagePrompt },
+            parameters: { sampleCount: 1 }
+          };
 
-      // Pré-carrega a imagem em segundo plano para manter o spinner ativo enquanto a IA desenha a imagem
-      const imgLoader = new Image();
-      imgLoader.src = generatedImageUrl;
+      try {
+        const imageResult = await fetchWithRetry(imageUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(imagePayload)
+        });
 
-      imgLoader.onload = async () => {
+        if (imageResult.error) {
+           throw new Error(imageResult.error.message || "Erro desconhecido na resposta JSON do Google.");
+        }
+
+        const base64Bytes = imageResult.predictions?.[0]?.bytesBase64Encoded;
+        if (!base64Bytes) throw new Error("A API de imagem retornou uma estrutura de predição vazia.");
+
+        const generatedImageUrl = `data:image/png;base64,${base64Bytes}`;
         const updatedCharacter = { ...charData, imageUrl: generatedImageUrl, imageGenerationFailed: false };
         await saveAndSyncCharacter(updatedCharacter);
-        state.loadingImage = false;
-        renderCharacterSheet();
-        showToast("Arte do personagem materializada com sucesso!");
-      };
 
-      imgLoader.onerror = async (err) => {
-        console.error("Falha ao carregar arte conceitual:", err);
+        showToast("Arte do personagem materializada com sucesso!");
+      } catch (err) {
+        console.error("Erro na imagem:", err);
         const fallbackImage = `https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=60`;
         const updatedCharacter = { ...charData, imageUrl: fallbackImage, imageGenerationFailed: true };
         await saveAndSyncCharacter(updatedCharacter);
+        
+        let displayError = err.message;
+        if (displayError.includes('API (403)') || displayError.includes('API (404)')) {
+          displayError = "Sua chave de API não tem as permissões necessárias para o modelo de geração de imagem. Tente recriá-la ou usar o plano compatível.";
+        }
+        showError(`Problema na materialização do Avatar: ${displayError}`);
+      } finally {
         state.loadingImage = false;
         renderCharacterSheet();
-        showError("Houve uma falha na rede ao renderizar a imagem externa. Usando imagem alternativa.");
-      };
+      }
     }
 
     // REGRA DE REESCRITA DE LORE PURA
@@ -1449,7 +1285,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
                         <button 
                           id="btn-copy-code"
                           class="hover:text-white transition-colors ml-1 p-0.5"
-                          title="Copiar Código de Segurança"
+                          title="Copiar ID da Ficha"
                         >
                           <i data-lucide="copy" class="h-3 w-3"></i>
                         </button>
@@ -2105,7 +1941,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
 
                 <button
                   id="btn-add-item"
-                  class="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-900/25 transition-all flex items-center justify-center gap-1.5"
+                  class="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-950/25 transition-all flex items-center justify-center gap-1.5"
                 >
                   <i data-lucide="plus" class="h-4 w-4"></i>
                   <span>Adicionar Item</span>
@@ -2260,7 +2096,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
       if (btnCopyCode) {
         btnCopyCode.addEventListener('click', () => {
           copyTextFallback(state.character.securityCode);
-          showToast("Código copiado! Use-o para recuperar sua ficha mais tarde.");
+          showToast("ID da ficha copiado!");
         });
       }
 
