@@ -116,7 +116,7 @@
           <div>
             <h4 class="font-semibold text-slate-200 mb-1">Como funciona a geração?</h4>
             <p class="leading-relaxed">
-              O sistema utiliza o modelo estável <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> para criar os dados técnicos e a história. Logo após, a imagem é renderizada pelo motor inteligente livre da <strong class="text-purple-400">Pollinations AI</strong>.
+              O sistema utiliza o modelo estável <strong class="text-purple-400" id="active-model-display">gemini-2.5-flash</strong> com definições de schema para criar os dados técnicos. Logo após, a imagem é renderizada pelo motor externo de arte livre <strong class="text-purple-400">Pollinations AI</strong>.
             </p>
           </div>
         </div>
@@ -278,16 +278,33 @@
 
   </main>
 
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800 bg-slate-950/60 py-6 px-6 text-center text-xs text-slate-500 space-y-2 mt-auto print:hidden">
+    <p>Desenvolvido com Vanilla JS, Tailwind CSS, Gemini 2.5 Flash & Pollinations AI</p>
+    <p class="text-[10px] text-slate-600">As chaves de API são providas pelo ambiente do canvas ou salvas localmente.</p>
+  </footer>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // REGRA OBRIGATÓRIA DO CANVAS: Mantenha esta linha exatamente como está.
     const apiKey = ""; 
 
-    // Configurações globais do Firebase
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+    // SUAS CONFIGURAÇÕES DO FIREBASE PARA O GITHUB PAGES
+    // Substitua os valores abaixo pelo 'firebaseConfig' que o Google gera para o seu projeto no Firebase Console.
+    const myFirebaseConfig = {
+      apiKey: "COLOQUE_AQUI_SUA_API_KEY_DO_FIREBASE",
+      authDomain: "seu-projeto-123.firebaseapp.com",
+      projectId: "seu-projeto-123",
+      storageBucket: "seu-projeto-123.appspot.com",
+      messagingSenderId: "COLOQUE_O_SENDER_ID",
+      appId: "COLOQUE_O_APP_ID"
+    };
+
+    // O sistema primeiro tenta pegar as credenciais de teste do Canvas. Se não achar, usa suas chaves para o GitHub Pages.
+    const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config ? JSON.parse(__firebase_config) : myFirebaseConfig;
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'rpg-studio-app';
 
     // ESTADO GLOBAL DO APLICATIVO
@@ -394,10 +411,12 @@
         console.error("Erro ao carregar do localStorage:", e);
       }
 
+      // Sincronizar inputs iniciais da coluna esquerda
       document.getElementById('prompt-input').value = state.userPrompt;
       document.getElementById('prompt-counter').innerText = `${state.userPrompt.length}/500`;
       document.getElementById('dice-formula-input').value = state.diceFormula;
 
+      // Event Listeners Base
       document.getElementById('prompt-input').addEventListener('input', (e) => {
         state.userPrompt = e.target.value;
         document.getElementById('prompt-counter').innerText = `${state.userPrompt.length}/500`;
@@ -407,7 +426,7 @@
         state.diceFormula = e.target.value;
       });
 
-      // Botoes
+      // Botoes Principais
       document.getElementById('btn-generate').addEventListener('click', generateCharacter);
       document.getElementById('btn-clear-formula').addEventListener('click', clearFormula);
       document.getElementById('btn-roll-dice').addEventListener('click', rollDice);
@@ -428,21 +447,23 @@
         showToast("Configurações atualizadas!");
       });
 
-      // Firebase Init (Regra 3)
-      if (firebaseConfig) {
+      // Verifica se o Firebase Config tem chaves válidas antes de inicializar para não quebrar no GitHub
+      const isConfigValid = firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== "COLOQUE_AQUI_SUA_API_KEY_DO_FIREBASE";
+
+      if (isConfigValid) {
         try {
           const app = initializeApp(firebaseConfig);
           auth = getAuth(app);
           db = getFirestore(app);
 
           const initAuth = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-              await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
+            const currUser = auth.currentUser;
+            if (!currUser) {
               await signInAnonymously(auth);
             }
           };
           await initAuth();
+          
           onAuthStateChanged(auth, (usr) => {
             currentUser = usr;
             renderAll();
@@ -450,9 +471,10 @@
         } catch (e) {
           console.error("Erro ao configurar Firebase:", e);
         }
+      } else {
+        console.warn("Nenhuma chave válida do Firebase detectada. O aplicativo rodará apenas offline.");
+        renderAll();
       }
-
-      renderAll();
     }
 
     // GESTÃO DE RENDERIZAÇÃO
@@ -493,6 +515,7 @@
       }
     }
 
+    // PERSISTÊNCIA & SYNCS
     const saveHistoryToStorage = (historyList) => {
       try {
         const cleanHistory = historyList.map(item => {
@@ -526,6 +549,7 @@
       return apiKey; 
     };
 
+    // Detecção dinâmica de modelo para mitigar erros 404 de API em ambientes externos
     const getActiveModel = () => {
       return 'gemini-2.5-flash';
     };
@@ -552,6 +576,7 @@
       }
     };
 
+    // FUNÇÃO CENTRAL PARA SALVAR E SINCRONIZAR
     const saveAndSyncCharacter = async (charData) => {
       if (!charData) return;
 
@@ -567,7 +592,6 @@
       if (db && auth && currentUser) {
         try {
           let cloudChar = { ...updatedChar };
-          // Removemos URLs gigantonas se houver para evitar limites do firestore
           if (cloudChar.imageUrl && cloudChar.imageUrl.startsWith('data:image')) {
             cloudChar.imageUrl = 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=60';
           }
@@ -606,6 +630,7 @@
       saveHistoryToStorage(state.history);
     };
 
+    // DESIGN DE ART STYLES GRID (LEFT)
     function renderArtStylesGrid() {
       const container = document.getElementById('art-styles-grid');
       container.innerHTML = artStyles.map(style => {
@@ -626,6 +651,7 @@
         `;
       }).join('');
 
+      // Adicionar listeners
       container.querySelectorAll('.art-style-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const styleId = e.currentTarget.getAttribute('data-id');
@@ -635,6 +661,7 @@
       });
     }
 
+    // INSPIRAÇÕES RÁPIDAS
     function renderQuickPrompts() {
       const container = document.getElementById('quick-prompts-container');
       container.innerHTML = quickPrompts.map(p => `
@@ -654,6 +681,7 @@
       });
     }
 
+    // ROLAGEM DE DADOS MESA
     function renderQuickDice() {
       const container = document.getElementById('quick-dice-container');
       const dice = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'];
@@ -695,6 +723,180 @@
           appendToFormula(mod);
         });
       });
+    }
+
+    function appendToFormula(val) {
+      let formula = state.diceFormula.trim();
+      if (!formula) {
+        state.diceFormula = val;
+      } else if (['+', '-', '*', '/'].includes(formula.slice(-1))) {
+        state.diceFormula = `${formula} ${val}`;
+      } else {
+        state.diceFormula = `${formula} + ${val}`;
+      }
+      document.getElementById('dice-formula-input').value = state.diceFormula;
+    }
+
+    function clearFormula() {
+      state.diceFormula = '';
+      document.getElementById('dice-formula-input').value = '';
+    }
+
+    // CALCULAR ROLAGEM DE DADO MECÂNICA
+    function rollDice() {
+      executeCalculatedRoll(state.diceFormula, 'Mesa de Dados');
+    }
+
+    function executeCalculatedRoll(formulaString, sourceLabel) {
+      let expression = formulaString.trim().toUpperCase();
+      if (!expression) return;
+
+      const diceBreakdown = [];
+      let processingExpr = expression;
+
+      // Pegar modificadores da ficha atual se houver
+      const charMods = {
+        'FOR': state.character ? Math.floor(((state.character.attributes.strength || 10) - 10) / 2) : 0,
+        'DES': state.character ? Math.floor(((state.character.attributes.dexterity || 10) - 10) / 2) : 0,
+        'CON': state.character ? Math.floor(((state.character.attributes.constitution || 10) - 10) / 2) : 0,
+        'INT': state.character ? Math.floor(((state.character.attributes.intelligence || 10) - 10) / 2) : 0,
+        'SAB': state.character ? Math.floor(((state.character.attributes.wisdom || 10) - 10) / 2) : 0,
+        'CAR': state.character ? Math.floor(((state.character.attributes.charisma || 10) - 10) / 2) : 0,
+      };
+
+      Object.keys(charMods).forEach(key => {
+        const regex = new RegExp(`\\b${key}\\b`, 'g');
+        if (regex.test(processingExpr)) {
+          const val = charMods[key];
+          processingExpr = processingExpr.replace(regex, val >= 0 ? `+${val}` : `${val}`);
+          diceBreakdown.push({ name: `Mod ${key}`, detail: val >= 0 ? `+${val}` : `${val}`, value: val });
+        }
+      });
+
+      const diceRegex = /(\d*)[D](\d+)/g;
+      let match;
+      const matchesToRoll = [];
+
+      while ((match = diceRegex.exec(processingExpr)) !== null) {
+        matchesToRoll.push({
+          fullMatch: match[0],
+          count: match[1] === "" ? 1 : parseInt(match[1]),
+          sides: parseInt(match[2])
+        });
+      }
+
+      let rolledExpr = processingExpr;
+
+      matchesToRoll.forEach(item => {
+        const rolls = [];
+        for (let i = 0; i < item.count; i++) {
+          rolls.push(Math.floor(Math.random() * item.sides) + 1);
+        }
+        const sum = rolls.reduce((a, b) => a + b, 0);
+        const detailStr = `[${rolls.join(' + ')}]`;
+        
+        rolledExpr = rolledExpr.replace(item.fullMatch, sum);
+        diceBreakdown.push({
+          name: item.fullMatch,
+          detail: detailStr,
+          value: sum,
+          individual: rolls
+        });
+      });
+
+      const sanitizedMathExpr = rolledExpr.replace(/[^0-9+\-*/().\s]/g, '');
+      let finalSum = 0;
+      try {
+        finalSum = Function(`"use strict"; return (${sanitizedMathExpr})`)();
+        if (finalSum < 0) finalSum = 0;
+      } catch (calcError) {
+        showError(`Erro de Sintaxe na fórmula "${formulaString}". Verifique o formato.`);
+        return;
+      }
+
+      const currentRoll = {
+        formula: `${sourceLabel} (${expression})`,
+        breakdown: diceBreakdown,
+        calculatedExpr: sanitizedMathExpr,
+        total: finalSum,
+        timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      };
+
+      state.lastRoll = currentRoll;
+      state.rollHistory = [currentRoll, ...state.rollHistory].slice(0, 5);
+      localStorage.setItem('rpg_studio_rolls', JSON.stringify(state.rollHistory));
+
+      showToast(`Rolagem [${sourceLabel}]: ${finalSum}! ⚔️`);
+      renderRollResults();
+    }
+
+    function renderRollResults() {
+      const container = document.getElementById('roll-result-container');
+      const histContainer = document.getElementById('roll-history-container');
+      const histList = document.getElementById('roll-history-list');
+
+      if (!state.lastRoll) {
+        container.innerHTML = '';
+        histContainer.classList.add('hidden');
+        return;
+      }
+
+      const r = state.lastRoll;
+      container.innerHTML = `
+        <div class="p-3.5 bg-slate-950/80 rounded-xl border border-slate-850 space-y-2 text-left animate-in fade-in zoom-in-95 duration-150">
+          <div class="flex justify-between items-center">
+            <span class="text-[10px] font-bold text-purple-400 uppercase tracking-widest font-mono truncate max-w-[200px]">${r.formula}</span>
+            <span class="text-[9px] text-slate-600 font-mono shrink-0">${r.timestamp}</span>
+          </div>
+          
+          <div class="flex items-baseline gap-2">
+            <span class="text-3xl font-black text-white bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent font-mono">
+              ${r.total}
+            </span>
+            <span class="text-xs text-slate-500 font-medium">resultado final</span>
+          </div>
+
+          <div class="space-y-1 border-t border-slate-900 pt-1.5">
+            <p class="text-[9px] font-bold text-slate-500 uppercase">Detalhamento dos Dados:</p>
+            <div class="flex flex-col gap-1">
+              ${r.breakdown.length === 0 
+                ? `<span class="text-[11px] text-slate-500 font-mono italic">Apenas bônus fixos aplicados.</span>` 
+                : r.breakdown.map(b => `
+                  <div class="flex justify-between items-center text-[11px] font-mono">
+                    <span class="text-slate-400">${b.name}</span>
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-slate-600 text-[10px]">${b.detail}</span>
+                      <span class="text-indigo-300 font-bold">= ${b.value}</span>
+                    </div>
+                  </div>
+                `).join('')
+              }
+            </div>
+            <div class="text-[10px] font-mono text-slate-500 flex justify-between pt-1 border-t border-slate-950">
+              <span>Equação Simplificada:</span>
+              <span>${r.calculatedExpr} = ${r.total}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Histórico de Rolagem Adicional
+      if (state.rollHistory.length > 1) {
+        histContainer.classList.remove('hidden');
+        histList.innerHTML = state.rollHistory.slice(1, 4).map(h => `
+          <div class="flex justify-between items-center text-[10px] font-mono bg-slate-950/40 p-1.5 rounded border border-slate-900">
+            <span class="text-slate-400 truncate max-w-[120px]">${h.formula}</span>
+            <div class="flex items-center gap-2">
+              <span class="text-slate-600 text-[9px]">${h.timestamp}</span>
+              <span class="font-bold text-purple-400">${h.total}</span>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        histContainer.classList.add('hidden');
+      }
+
+      lucide.createIcons();
     }
 
     async function generateCharacter() {
@@ -824,7 +1026,7 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       renderCharacterSheet();
 
       const artStyleInstructions = {
-        'concept-art': 'conceptual digital painting, character concept sheet, highly detailed, dramatic shadows, cinematic lighting, sharp focus, digital concept-art style',
+        'concept-art': 'conceptual digital painting, character concept sheet, highly detailed, dramatic shadows, cinematic lighting, sharp focus',
         'anime': 'modern anime style character portrait, beautiful lineart, vibrant flat shading, high resolution anime key art, studio trigger style',
         'pixel-art': 'meticulously crafted 16-bit pixel art, detailed retro game sprite, isometric fantasy style, limited palette, highly textured',
         'realistic': 'photorealistic character portrait, shot on 85mm lens, f/1.4, volumetric lighting, rich fabric textures, hyper-detailed skin, cinematic color grading',
@@ -834,24 +1036,26 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
 
       const finalImagePrompt = `${charData.imagePrompt}, close-up character portrait, centered composition, styled as ${artStyleInstructions[charData.artStyle] || 'digital art'}, masterpiece, 4k resolution`;
 
-      // Como o Craiyon possui bloqueios de CORS estritos que impedem o navegador de ler a resposta de imagem base64 diretamente sem um proxy,
-      // a solução definitiva e oficial para front-end público é o Pollinations AI (totalmente gratuito, veloz, sem CORS e sem chave de acesso).
-      // Ele renderiza os prompts gerados pela IA no local do avatar com máxima fidelidade.
-      const seed = Math.floor(Math.random() * 1000000);
-      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalImagePrompt)}?width=512&height=512&nologo=true&private=true&seed=${seed}`;
-
       try {
-        // Pré-carregamento síncrono para garantir que o spinner roxo dure até a imagem estar totalmente carregada
-        await new Promise((resolve, reject) => {
-          const img = new Image();
-          img.src = pollinationsUrl;
-          img.onload = () => resolve(pollinationsUrl);
-          img.onerror = (err) => reject(err);
-          // Timeout de resiliência de 25 segundos
-          setTimeout(() => reject(new Error("Timeout ao renderizar")), 25000);
+        // Para resolver o problema de geração de imagem de forma robusta e livre de bloqueios de CORS, faturamento ou chaves,
+        // usamos o Pollinations AI (que atua como uma ponte livre, gratuita e síncrona para geração de imagem).
+        const encodedPrompt = encodeURIComponent(finalImagePrompt);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&nologo=true&enhance=true&seed=${Math.floor(Math.random() * 100000)}`;
+
+        // Baixamos a imagem em Base64 para que seja sincronizada nativamente no Firestore/localStorage do usuário
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) throw new Error("A ponte externa de imagens Pollinations falhou ao renderizar.");
+        
+        const blob = await imageResponse.blob();
+        
+        const base64Bytes = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
         });
 
-        const updatedCharacter = { ...charData, imageUrl: pollinationsUrl, imageGenerationFailed: false };
+        const updatedCharacter = { ...charData, imageUrl: base64Bytes, imageGenerationFailed: false };
         await saveAndSyncCharacter(updatedCharacter);
 
         showToast("Arte do personagem materializada com sucesso!");
@@ -860,7 +1064,8 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
         const fallbackImage = `https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=60`;
         const updatedCharacter = { ...charData, imageUrl: fallbackImage, imageGenerationFailed: true };
         await saveAndSyncCharacter(updatedCharacter);
-        showError("Não foi possível carregar a imagem externa. Exibindo arte alternativa.");
+        
+        showError(`Problema na materialização do Avatar: ${err.message}. Ficha criada com imagem padrão.`);
       } finally {
         state.loadingImage = false;
         renderCharacterSheet();
@@ -876,7 +1081,8 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       renderCharacterSheet();
 
       const activeKey = getActiveApiKey();
-      const textModelUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
+      const activeModel = getActiveModel();
+      const textModelUrl = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${activeKey}`;
 
       const systemPrompt = `Você é um mestre de RPG veterano e escritor criativo. 
 Sua única tarefa é reescrever a história de fundo (lore) de um personagem de forma épiquíssima e envolvente (com exatamente 2 parágrafos).
@@ -1185,7 +1391,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
                     />
                     ${char.imageGenerationFailed ? `
                       <div class="absolute bottom-2 inset-x-2 bg-red-950/90 border border-red-900 text-red-300 p-2 rounded-lg text-[10px] leading-snug print:hidden">
-                        Erro ao materializar arte conceitual. Mostrando avatar alternativo.
+                        Erro ao materializar arte de avatar via Google Imagen API.
                       </div>
                     ` : ''}
                   ` : `
@@ -1992,6 +2198,14 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
       document.getElementById('btn-download-pdf').addEventListener('click', () => {
         downloadPdf();
       });
+
+      // Regenerar Arte
+      const btnRegenAvatar = document.getElementById('btn-regenerate-avatar');
+      if (btnRegenAvatar) {
+        btnRegenAvatar.addEventListener('click', () => {
+          generateAvatar(state.character);
+        });
+      }
 
       // HP modifiers
       document.getElementById('input-hp-amount')?.addEventListener('input', (e) => {
