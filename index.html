@@ -226,7 +226,7 @@
           </div>
         </div>
 
-        <!-- Teclado Rápido de Dados -->
+        <!-- Teclado Rápido de Dados e Modificadores -->
         <div class="space-y-2 text-left">
           <span class="text-[9px] font-bold text-slate-500 uppercase block tracking-wider">Somar Dados Rápidos:</span>
           <div class="flex flex-wrap gap-1" id="quick-dice-container">
@@ -834,7 +834,9 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
 
       const finalImagePrompt = `${charData.imagePrompt}, close-up character portrait, centered composition, styled as ${artStyleInstructions[charData.artStyle] || 'digital art'}, masterpiece, 4k resolution`;
 
-      // Geramos um seed aleatório para garantir novidade em cada imagem gerada
+      // Como o Craiyon possui bloqueios de CORS estritos que impedem o navegador de ler a resposta de imagem base64 diretamente sem um proxy,
+      // a solução definitiva e oficial para front-end público é o Pollinations AI (totalmente gratuito, veloz, sem CORS e sem chave de acesso).
+      // Ele renderiza os prompts gerados pela IA no local do avatar com máxima fidelidade.
       const seed = Math.floor(Math.random() * 1000000);
       const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalImagePrompt)}?width=512&height=512&nologo=true&private=true&seed=${seed}`;
 
@@ -865,6 +867,7 @@ O campo "imagePrompt" deve ser escrito em INGLÊS, pois será enviado para um ge
       }
     }
 
+    // REGRA DE REESCRITA DE LORE PURA
     async function regenerateLore() {
       if (!state.character) return;
       
@@ -1765,7 +1768,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
                   <label class="text-[10px] font-bold text-slate-500 uppercase">Descrição & Efeito</label>
                   <textarea
                     id="new-item-desc"
-                    placeholder="Efeitos adicionais, properties mecânicas..."
+                    placeholder="Efeitos adicionais, propriedades mecânicas..."
                     class="w-full h-16 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-300 focus:outline-none resize-none font-sans leading-relaxed"
                   >${state.newItemDesc}</textarea>
                 </div>
@@ -2179,6 +2182,7 @@ REGRA MANDATÓRIA: Não inclua em hipótese alguma pontuações de atributos mec
       });
     }
 
+    // AÇÃO DE ATACAR OU CONSUMIR ITEM (RESOLVENDO CONTEXTOS SÍNCRONOS)
     function useEquipmentItem(item, index) {
       if (!state.character || item.quantity <= 0) return;
 
