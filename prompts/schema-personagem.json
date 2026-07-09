@@ -1,0 +1,129 @@
+{
+  "type": "OBJECT",
+  "properties": {
+    "name": {
+      "type": "STRING",
+      "description": "Nome do personagem completo."
+    },
+    "title": {
+      "type": "STRING",
+      "description": "Título honorífico."
+    },
+    "characterClass": {
+      "type": "STRING",
+      "description": "Classe ou especialização."
+    },
+    "attributes": {
+      "type": "OBJECT",
+      "properties": {
+        "strength": {
+          "type": "INTEGER"
+        },
+        "dexterity": {
+          "type": "INTEGER"
+        },
+        "constitution": {
+          "type": "INTEGER"
+        },
+        "intelligence": {
+          "type": "INTEGER"
+        },
+        "wisdom": {
+          "type": "INTEGER"
+        },
+        "charisma": {
+          "type": "INTEGER"
+        }
+      },
+      "required": [
+        "strength",
+        "dexterity",
+        "constitution",
+        "intelligence",
+        "wisdom",
+        "charisma"
+      ]
+    },
+    "hpMax": {
+      "type": "INTEGER"
+    },
+    "mpMax": {
+      "type": "INTEGER"
+    },
+    "xpMax": {
+      "type": "INTEGER"
+    },
+    "lore": {
+      "type": "STRING",
+      "description": "História rica envolvendo 2 parágrafos."
+    },
+    "skills": {
+      "type": "ARRAY",
+      "items": {
+        "type": "OBJECT",
+        "properties": {
+          "name": {
+            "type": "STRING"
+          },
+          "description": {
+            "type": "STRING"
+          },
+          "cost": {
+            "type": "STRING"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "cost"
+        ]
+      }
+    },
+    "equipment": {
+      "type": "ARRAY",
+      "items": {
+        "type": "OBJECT",
+        "properties": {
+          "name": {
+            "type": "STRING"
+          },
+          "type": {
+            "type": "STRING"
+          },
+          "description": {
+            "type": "STRING"
+          },
+          "quantity": {
+            "type": "INTEGER"
+          },
+          "formula": {
+            "type": "STRING"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "description",
+          "quantity",
+          "formula"
+        ]
+      }
+    },
+    "imagePrompt": {
+      "type": "STRING"
+    }
+  },
+  "required": [
+    "name",
+    "title",
+    "characterClass",
+    "attributes",
+    "hpMax",
+    "mpMax",
+    "xpMax",
+    "lore",
+    "skills",
+    "equipment",
+    "imagePrompt"
+  ]
+}

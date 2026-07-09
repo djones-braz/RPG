@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Lore & Character Sheet Studio | Projeto IA Aplicada</title>
+  <meta name="description" content="Projeto acadêmico de IA Generativa para criação de fichas de RPG e arte conceitual, desenvolvido por Ronald Salvaya, Matheus Makoto e Kauã Lau sob orientação do Professor Djones Braz.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container nav">
+      <a class="brand" href="#top" aria-label="AI Lore Home">
+        <span class="brand-mark">⚔️</span>
+        <span>AI Lore Studio<small>RPG + IA Generativa</small></span>
+      </a>
+      <nav class="links" aria-label="Navegação principal">
+        <a href="#sobre">Sobre</a>
+        <a href="#mvp">MVP</a>
+        <a href="#metodologia">Metodologia</a>
+        <a href="#documentacao">Documentação</a>
+        <a class="btn primary" href="app/index.html">Abrir MVP</a>
+      </nav>
+      <a class="btn primary mobile-menu" href="app/index.html">Abrir MVP</a>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <span class="badge">MVP Funcional • Junho de 2026</span>
+          <h1><span class="gradient-text">AI Lore & Character Sheet Studio</span></h1>
+          <p>Documentação técnica ilustrada e aplicação web para geração de fichas de RPG, narrativas de personagens e arte conceitual por Inteligência Artificial.</p>
+          <div class="hero-actions">
+            <a class="btn primary" href="app/index.html">🚀 Abrir MVP Funcional</a>
+            <a class="btn secondary" href="assets/docs/AI_Lore_Character_Sheet_Documentacao_Tecnica.pdf">📄 Baixar PDF Técnico</a>
+            <a class="btn secondary" href="DOCUMENTACAO_TECNICA.md">📚 Ler documentação</a>
+          </div>
+          <div class="meta-grid" aria-label="Ficha do projeto">
+            <div class="meta"><strong>Desenvolvedores</strong><span>Ronald Salvaya, Matheus Makoto e Kauã Lau</span></div>
+            <div class="meta"><strong>Orientação</strong><span>Prof. Djones Braz de Araujo Costa</span></div>
+            <div class="meta"><strong>Curso</strong><span>Inteligência Artificial Aplicada</span></div>
+            <div class="meta"><strong>Unidade</strong><span>FAETEC-RJ • Cachoeiras de Macacu</span></div>
+          </div>
+        </div>
+        <aside class="hero-card">
+          <img src="assets/img/pdf-page-04.png" alt="Prévia da ficha inteligente com avatar, atributos e barras de status">
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="sobre">
+      <div class="container">
+        <div class="kicker">Problema e Proposta</div>
+        <h2>Uma ponte entre imaginação, ficha técnica e arte conceitual.</h2>
+        <p class="section-lead">O projeto nasceu para reduzir a barreira inicial de criação de personagens de RPG. A aplicação interpreta uma descrição simples, gera uma ficha estruturada, cria uma história de fundo e materializa um avatar em diferentes estilos visuais.</p>
+        <div class="grid cards-3">
+          <article class="card"><h3>🎯 Problema</h3><p>Criação tradicional de fichas pode exigir leitura de regras complexas e tempo de preparação, afastando novos jogadores.</p></article>
+          <article class="card"><h3>✨ Solução</h3><p>Uso de IA Generativa para acelerar lore, atributos, habilidades, equipamentos e visual conceitual.</p></article>
+          <article class="card"><h3>🧩 Valor educacional</h3><p>O MVP demonstra integração de APIs, engenharia de prompts, interface reativa e documentação técnica em contexto acadêmico.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="mvp">
+      <div class="container">
+        <div class="kicker">MVP Funcional</div>
+        <h2>Recursos implementados</h2>
+        <p class="section-lead">A versão disponibilizada funciona como uma aplicação estática compatível com GitHub Pages e executada diretamente no navegador.</p>
+        <div class="grid cards-3">
+          <article class="card"><h3>🧙 Geração de personagem</h3><ul><li>Nome, título e classe.</li><li>Atributos e modificadores.</li><li>Lore em PT-BR.</li><li>JSON estruturado.</li></ul></article>
+          <article class="card"><h3>🎨 Geração visual</h3><ul><li>Concept Art.</li><li>Anime/Manga.</li><li>Pixel Art.</li><li>Realista e variações.</li></ul></article>
+          <article class="card"><h3>🎲 Ferramentas de mesa</h3><ul><li>HP, MP e XP interativos.</li><li>Calculadora de dados.</li><li>Equipamentos utilizáveis.</li><li>Exportação PDF A4.</li></ul></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="galeria">
+      <div class="container">
+        <div class="kicker">Demonstração visual</div>
+        <h2>Interface, ficha inteligente e calculadora</h2>
+        <div class="gallery">
+          <figure class="shot"><img src="assets/img/pdf-page-03.png" alt="Página com seleção de estilo visual e campo de prompt"><div><h3>Entrada criativa</h3><p>Seleção de estilos e inspirações rápidas.</p></div></figure>
+          <figure class="shot"><img src="assets/img/pdf-page-04.png" alt="Página com ficha gerada e barras de status"><div><h3>Ficha inteligente</h3><p>Avatar, atributos, HP, MP e XP.</p></div></figure>
+          <figure class="shot"><img src="assets/img/pdf-page-05.png" alt="Página com painel de atributos e calculadora de dados"><div><h3>Mesa de dados</h3><p>Fórmulas com dados e modificadores.</p></div></figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="arquitetura">
+      <div class="container">
+        <div class="kicker">Arquitetura</div>
+        <h2>Aplicação web estática com IA integrada.</h2>
+        <div class="grid cards-2">
+          <article class="card"><h3>Stack do MVP</h3><ul><li>HTML5, CSS e JavaScript Vanilla.</li><li>Tailwind CSS via CDN.</li><li>Gemini API para geração textual.</li><li>Pollinations AI para avatar.</li><li>localStorage para persistência local.</li></ul></article>
+          <article class="card"><h3>Fluxo lógico</h3><div class="code">Prompt do usuário → Schema JSON → Gemini API → Ficha estruturada → Prompt visual → Avatar → Interface reativa</div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="metodologia">
+      <div class="container">
+        <div class="kicker">Metodologia</div>
+        <h2>Desenvolvimento incremental do produto</h2>
+        <div class="timeline">
+          <div class="step"><span class="num">1</span><div><h3>Planejamento</h3><p>Mapeamento do problema, público-alvo e fluxo das APIs de IA.</p></div></div>
+          <div class="step"><span class="num">2</span><div><h3>Modelagem e regras</h3><p>Definição de atributos, modificadores, status e lógica de ficha.</p></div></div>
+          <div class="step"><span class="num">3</span><div><h3>Integração de texto</h3><p>Engenharia de prompts e uso de retorno JSON estruturado.</p></div></div>
+          <div class="step"><span class="num">4</span><div><h3>Integração visual</h3><p>Criação de prompts de imagem por estilo artístico e renderização do avatar.</p></div></div>
+          <div class="step"><span class="num">5</span><div><h3>Validação e testes</h3><p>Testes de calculadora de dados, armazenamento local, ficha e exportação.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="publicacao">
+      <div class="container">
+        <div class="kicker">GitHub Pages</div>
+        <h2>Pronto para publicação comunitária</h2>
+        <p class="section-lead">Este repositório foi preparado para publicar a pasta <strong>docs/</strong> como site do projeto. O MVP funcional fica disponível em <strong>docs/app/index.html</strong>.</p>
+        <div class="code">Settings → Pages → Deploy from a branch → main / docs</div>
+      </div>
+    </section>
+
+    <section class="section" id="documentacao">
+      <div class="container">
+        <div class="kicker">Documentação</div>
+        <h2>Materiais para estudo, apresentação e colaboração</h2>
+        <div class="docs-list">
+          <a class="doc-link" href="DOCUMENTACAO_TECNICA.md"><span>Documentação Técnica</span><strong>MD</strong></a>
+          <a class="doc-link" href="ARQUITETURA.md"><span>Arquitetura do MVP</span><strong>MD</strong></a>
+          <a class="doc-link" href="GUIA_USUARIO.md"><span>Guia do Usuário</span><strong>MD</strong></a>
+          <a class="doc-link" href="METODOLOGIA.md"><span>Metodologia</span><strong>MD</strong></a>
+          <a class="doc-link" href="ROADMAP.md"><span>Roadmap</span><strong>MD</strong></a>
+          <a class="doc-link" href="REFERENCIAS.md"><span>Referências</span><strong>MD</strong></a>
+          <a class="doc-link" href="GITHUB_PAGES.md"><span>Publicação no GitHub Pages</span><strong>MD</strong></a>
+          <a class="doc-link" href="assets/docs/AI_Lore_Character_Sheet_Documentacao_Tecnica.pdf"><span>PDF técnico original</span><strong>PDF</strong></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p><strong>AI Lore & Character Sheet Studio</strong> - Projeto acadêmico de Inteligência Artificial Aplicada.</p>
+      <p>Desenvolvido por Ronald Salvaya, Matheus Makoto e Kauã Lau. Orientação: Professor Djones Braz de Araujo Costa. FAETEC-RJ - Unidade Cachoeiras de Macacu.</p>
+      <p>© <span data-year></span> - Disponibilizado para estudo, adaptação e colaboração comunitária.</p>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+</body>
+</html>

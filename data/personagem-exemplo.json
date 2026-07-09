@@ -1,0 +1,43 @@
+{
+  "name": "Kaelen Vorn",
+  "title": "O Eco de Silício",
+  "characterClass": "Espadachim Cibernético",
+  "level": 1,
+  "attributes": {
+    "strength": 14,
+    "dexterity": 19,
+    "constitution": 15,
+    "intelligence": 12,
+    "wisdom": 16,
+    "charisma": 7
+  },
+  "hpCurrent": 115,
+  "hpMax": 115,
+  "mpCurrent": 79,
+  "mpMax": 79,
+  "xpCurrent": 0,
+  "xpMax": 1000,
+  "lore": "Kaelen Vorn nasceu entre antenas queimadas, becos de neon e arquivos corrompidos de uma cidade onde memórias podiam ser compradas. Sua lâmina não era apenas uma arma, mas uma extensão silenciosa de sua própria culpa.\n\nAgora ele vaga como um duelista de poucas palavras, caçando ecos digitais de um passado que talvez nunca tenha sido realmente seu.",
+  "skills": [
+    {
+      "name": "Corte de Plasma",
+      "description": "Executa um golpe luminoso capaz de atravessar armaduras leves.",
+      "cost": "10 de Mana"
+    },
+    {
+      "name": "Reflexo Sintético",
+      "description": "Amplia temporariamente a velocidade de reação do personagem.",
+      "cost": "1 turno"
+    }
+  ],
+  "equipment": [
+    {
+      "name": "Katana de Luz Fria",
+      "type": "Arma",
+      "description": "Lâmina tecnológica de energia azulada.",
+      "quantity": 1,
+      "formula": "1d8 + DES"
+    }
+  ],
+  "imagePrompt": "cybernetic swordsman, melancholic, neon city, laser sword, detailed character portrait"
+}
